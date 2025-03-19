@@ -8,6 +8,7 @@ const orderController = {
       const order = await Order.create({ userId, productId, quantity, totalPrice });
       res.status(201).json(order);
     } catch (error) {
+      console.error('Error creating order:', error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -18,6 +19,7 @@ const orderController = {
       const orders = await Order.findAll();
       res.status(200).json(orders);
     } catch (error) {
+      console.error('Error getting orders:', error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -31,6 +33,7 @@ const orderController = {
       }
       res.status(200).json(order);
     } catch (error) {
+      console.error('Error getting order by ID:', error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -47,6 +50,7 @@ const orderController = {
       }
       res.status(200).json(updatedOrder[1][0]);
     } catch (error) {
+      console.error('Error updating order:', error);
       res.status(500).json({ error: error.message });
     }
   },
@@ -62,6 +66,7 @@ const orderController = {
       }
       res.status(200).json({ message: 'Order deleted successfully' });
     } catch (error) {
+      console.error('Error deleting order:', error);
       res.status(500).json({ error: error.message });
     }
   },
