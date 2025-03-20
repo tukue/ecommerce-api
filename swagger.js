@@ -16,20 +16,6 @@ const options = {
         url: 'http://localhost:5004',
       },
     ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
-    },
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
   },
   apis: ['./routes/*.js', './controllers/*.js'], // Files containing annotations as above
 };

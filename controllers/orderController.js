@@ -1,7 +1,55 @@
 const Order = require('../models/order');
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Order:
+ *       type: object
+ *       required:
+ *         - userId
+ *         - productId
+ *         - quantity
+ *         - totalPrice
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: The auto-generated id of the order
+ *         userId:
+ *           type: integer
+ *         productId:
+ *           type: integer
+ *         quantity:
+ *           type: integer
+ *         totalPrice:
+ *           type: number
+ *           format: float
+ *       example:
+ *         id: 1
+ *         userId: 1
+ *         productId: 1
+ *         quantity: 2
+ *         totalPrice: 200.0
+ */
 const orderController = {
-  // Create a new order
+  /**
+   * @swagger
+   * /api/orders:
+   *   post:
+   *     summary: Create a new order
+   *     tags: [Orders]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/Order'
+   *     responses:
+   *       201:
+   *         description: Order created successfully
+   *       500:
+   *         description: Internal server error
+   */
   createOrder: async (req, res) => {
     try {
       const { userId, productId, quantity, totalPrice } = req.body;
@@ -13,7 +61,24 @@ const orderController = {
     }
   },
 
-  // Get all orders
+  /**
+   * @swagger
+   * /api/orders:
+   *   get:
+   *     summary: Get all orders
+   *     tags: [Orders]
+   *     responses:
+   *       200:
+   *         description: List of all orders
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Order'
+   *       500:
+   *         description: Internal server error
+   */
   getAllOrders: async (req, res) => {
     try {
       const orders = await Order.findAll();
@@ -24,7 +89,31 @@ const orderController = {
     }
   },
 
-  // Get order by ID
+  /**
+   * @swagger
+   * /api/orders/{id}:
+   *   get:
+   *     summary: Get order by ID
+   *     tags: [Orders]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: integer
+   *         required: true
+   *         description: The order ID
+   *     responses:
+   *       200:
+   *         description: Order retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Order'
+   *       404:
+   *         description: Order not found
+   *       500:
+   *         description: Internal server error
+   */
   getOrderById: async (req, res) => {
     try {
       const order = await Order.findByPk(req.params.id);
@@ -38,7 +127,33 @@ const orderController = {
     }
   },
 
-  // Update order by ID
+  /**
+   * @swagger
+   * /api/orders/{id}:
+   *   put:
+   *     summary: Update order by ID
+   *     tags: [Orders]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: integer
+   *         required: true
+   *         description: The order ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             $ref: '#/components/schemas/Order'
+   *     responses:
+   *       200:
+   *         description: Order updated successfully
+   *       404:
+   *         description: Order not found
+   *       500:
+   *         description: Internal server error
+   */
   updateOrder: async (req, res) => {
     try {
       const updatedOrder = await Order.update(req.body, {
@@ -55,7 +170,27 @@ const orderController = {
     }
   },
 
-  // Delete order by ID
+  /**
+   * @swagger
+   * /api/orders/{id}:
+   *   delete:
+   *     summary: Delete order by ID
+   *     tags: [Orders]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: integer
+   *         required: true
+   *         description: The order ID
+   *     responses:
+   *       200:
+   *         description: Order deleted successfully
+   *       404:
+   *         description: Order not found
+   *       500:
+   *         description: Internal server error
+   */
   deleteOrder: async (req, res) => {
     try {
       const deletedOrder = await Order.destroy({

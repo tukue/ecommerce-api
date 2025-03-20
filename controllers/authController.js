@@ -85,7 +85,7 @@ const authController = {
       const token = jwt.sign(
         { userId: user.id },
         process.env.JWT_SECRET,
-        { expiresIn: '72h' }
+        { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
       // Remove password from response
@@ -150,7 +150,7 @@ const authController = {
       const token = jwt.sign(
         { userId: user.id },
         process.env.JWT_SECRET,
-        { expiresIn: '72h' }
+        { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
       // Remove password from response
