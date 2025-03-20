@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const orderRoutes = require('./routes/OrderRoutes');
 const  productRoutes = require('./routes/productRoutes');   
 const authRoutes = require('./routes/authRoutes');  
+const swaggerRoutes = require('./swagger');
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
 app.use('/api', orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/', swaggerRoutes);  
 
 const PORT = process.env.PORT || 5004;
 app.listen(PORT, () => {
