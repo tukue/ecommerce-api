@@ -38,7 +38,7 @@ app.get('/', (req, res) => {
 app.get('/products', async (req, res) => {
   try {
     const products = await req.models.Product.findAll();
-    res.render('products', { products }); // Render the products.ejs template
+    res.json(products); // Return JSON data
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).send('Internal Server Error');
@@ -54,6 +54,11 @@ app.get('/profile', async (req, res) => {
     console.error('Error fetching profile:', error);
     res.status(500).send('Internal Server Error');
   }
+});
+
+// Define the /cart route
+app.get('/cart', (req, res) => {
+  res.render('cart');
 });
 
 app.use('/api', orderRoutes);

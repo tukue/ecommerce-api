@@ -26,8 +26,29 @@ function displayProducts(products) {
       <p>${product.description}</p>
       <p>Price: $${product.price}</p>
       <p>Stock: ${product.stock}</p>
+      <button class="add-to-cart" data-id="${product.id}">Add to Cart</button>
     `;
     ul.appendChild(li);
   });
   container.appendChild(ul);
+
+  // Add event listeners to "Add to Cart" buttons
+  document.querySelectorAll('.add-to-cart').forEach(button => {
+    button.addEventListener('click', addToCart);
+  });
+}
+
+function addToCart(event) {
+  const productId = event.target.getAttribute('data-id');
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const product = cart.find(item => item.id === productId);
+
+  if (product) {
+    product.quantity += 1;
+  } else {
+    cart.push({ id: productId, quantity: 1 });
+  }
+
+  localStorage.setItem('cart', JSON.stringify(cart));
+  alert('Product added to cart');
 }

@@ -128,5 +128,5 @@ router.put('/:id', productController.updateProduct);
  *         description: Internal server error
  */
 router.delete('/:id', productController.deleteProduct);
-
+router.get('/:id', productController.getProductById); // Ensure this route exists
 module.exports = router;

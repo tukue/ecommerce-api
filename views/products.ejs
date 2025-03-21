@@ -18,6 +18,7 @@
           <p><%= product.description %></p>
           <p>Price: $<%= product.price %></p>
           <p>Stock: <%= product.stock %></p>
+          <button class="add-to-cart" data-id="<%= product.id %>">Add to Cart</button>
         </li>
       <% }) %>
     </ul>
