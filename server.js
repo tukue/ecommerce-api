@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const orderRoutes = require('./routes/OrderRoutes');
-const  productRoutes = require('./routes/productRoutes');   
+const productRoutes = require('./routes/productRoutes');   
 const authRoutes = require('./routes/authRoutes');  
 const swaggerRoutes = require('./swagger');
 
@@ -12,8 +12,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Set EJS as the view engine
+app.set('view engine', 'ejs');
+
+// Define the directory for EJS templates
+app.set('views', __dirname + '/views');
+
 app.get('/', (req, res) => {
-  res.send('Welcome to the E-commerce API');
+  res.render('index', { message: 'Welcome to the E-commerce API' });
 });
 
 app.use('/api', orderRoutes);
