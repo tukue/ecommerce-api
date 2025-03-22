@@ -20,6 +20,45 @@ async function displayCartItems() {
   }
 }
 
-document.getElementById('checkout-button').addEventListener('click', () => {
-  alert('Checkout functionality not implemented yet.');
+document.getElementById('checkout-button').addEventListener('click', async () => {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  // Ensure all prices are valid numbers
+  for (const item of cart) {
+    if (isNaN(item.price)) {
+      console.error(`Invalid price for item: ${item.name}`);
+      return;
+    }
+  }
+
+  try {
+    const response = await fetch('/api/checkout/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ cart }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const { id } = await response.json();
+    const stripe = Stripe(window.STRIPE_PUBLIC_KEY); // Use the Stripe public key from the global window object
+    await stripe.redirectToCheckout({ sessionId: id });
+  } catch (error) {
+    console.error('Error during checkout:', error);
+  }
 });
+
+// Clear the cart after a successful transaction
+function clearCart() {
+  localStorage.removeItem('cart');
+  displayCartItems();
+}
+
+// Check if the user is on the success page and clear the cart
+if (window.location.pathname === '/success') {
+  clearCart();
+}

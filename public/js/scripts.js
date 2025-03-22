@@ -26,7 +26,7 @@ function displayProducts(products) {
       <p>${product.description}</p>
       <p>Price: $${product.price}</p>
       <p>Stock: ${product.stock}</p>
-      <button class="add-to-cart" data-id="${product.id}">Add to Cart</button>
+      <button class="add-to-cart" data-id="${product.id}" data-name="${product.name}" data-price="${product.price}">Add to Cart</button>
     `;
     ul.appendChild(li);
   });
@@ -40,13 +40,15 @@ function displayProducts(products) {
 
 function addToCart(event) {
   const productId = event.target.getAttribute('data-id');
+  const productName = event.target.getAttribute('data-name');
+  const productPrice = parseFloat(event.target.getAttribute('data-price'));
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
   const product = cart.find(item => item.id === productId);
 
   if (product) {
     product.quantity += 1;
   } else {
-    cart.push({ id: productId, quantity: 1 });
+    cart.push({ id: productId, name: productName, price: productPrice, quantity: 1 });
   }
 
   localStorage.setItem('cart', JSON.stringify(cart));

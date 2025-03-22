@@ -5,6 +5,7 @@ const sequelize = require('./config/db'); // Import your sequelize instance
 const orderRoutes = require('./routes/OrderRoutes');
 const productRoutes = require('./routes/productRoutes');   
 const authRoutes = require('./routes/authRoutes');  
+const checkoutRoutes = require('./routes/checkoutRoutes'); // Import the checkout routes
 const swaggerRoutes = require('./swagger');
 const User = require('./models/user')(sequelize, require('sequelize').DataTypes);
 const Product = require('./models/product')(sequelize, require('sequelize').DataTypes);
@@ -58,12 +59,18 @@ app.get('/profile', async (req, res) => {
 
 // Define the /cart route
 app.get('/cart', (req, res) => {
-  res.render('cart');
+  res.render('cart', { stripePublicKey: process.env.STRIPE_PUBLIC_KEY });
+});
+
+// Define the /success route
+app.get('/success', (req, res) => {
+  res.render('success');
 });
 
 app.use('/api', orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/checkout', checkoutRoutes); // Use the checkout routes
 app.use('/', swaggerRoutes);  
 
 const PORT = process.env.PORT || 5004;
