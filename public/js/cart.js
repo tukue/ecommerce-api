@@ -15,9 +15,25 @@ async function displayCartItems() {
     }
     const product = await response.json();
     const li = document.createElement('li');
-    li.innerHTML = `Product: ${product.name}, Quantity: ${item.quantity}`;
+    li.innerHTML = `
+      Product: ${product.name}, Quantity: ${item.quantity}
+      <button class="remove-from-cart" data-id="${item.id}">Remove</button>
+    `;
     cartItemsContainer.appendChild(li);
   }
+
+  // Add event listeners to "Remove" buttons
+  document.querySelectorAll('.remove-from-cart').forEach(button => {
+    button.addEventListener('click', removeFromCart);
+  });
+}
+
+function removeFromCart(event) {
+  const productId = event.target.getAttribute('data-id');
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cart = cart.filter(item => item.id !== productId);
+  localStorage.setItem('cart', JSON.stringify(cart));
+  displayCartItems();
 }
 
 document.getElementById('checkout-button').addEventListener('click', async () => {
