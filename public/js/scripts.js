@@ -54,3 +54,64 @@ function addToCart(event) {
   localStorage.setItem('cart', JSON.stringify(cart));
   alert('Product added to cart');
 }
+
+// Add search functionality
+document.getElementById('search-input').addEventListener('input', async (event) => {
+  const query = event.target.value.toLowerCase();
+  try {
+    const response = await fetch('/products');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const products = await response.json();
+    const filteredProducts = products.filter(product => 
+      product.name.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query)
+    );
+    displayProducts(filteredProducts);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+  }
+});
+
+// Fetch profile data
+async function fetchProfile() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '/login';
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/auth/profile', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch profile');
+    }
+
+    const profile = await response.json();
+    displayProfile(profile);
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    window.location.href = '/login';
+  }
+}
+
+function displayProfile(profile) {
+  const profileContainer = document.getElementById('profile-container');
+  profileContainer.innerHTML = `
+    <p>Username: ${profile.username}</p>
+    <p>Email: ${profile.email}</p>
+  `;
+}
+
+// Call fetchProfile if on profile page
+if (window.location.pathname === '/profile') {
+  fetchProfile();
+}

@@ -6,9 +6,12 @@ const orderRoutes = require('./routes/OrderRoutes');
 const productRoutes = require('./routes/productRoutes');   
 const authRoutes = require('./routes/authRoutes');  
 const checkoutRoutes = require('./routes/checkoutRoutes'); // Import the checkout routes
+const paymentRoutes = require('./routes/paymentRoutes'); // Import the payment routes
 const swaggerRoutes = require('./swagger');
 const User = require('./models/user')(sequelize, require('sequelize').DataTypes);
 const Product = require('./models/product')(sequelize, require('sequelize').DataTypes);
+const Payment = require('./models/payment')(sequelize, require('sequelize').DataTypes); // Import the Payment model
+const authMiddleware = require('./middleware/authMiddleWare'); // Import the auth middleware
 
 dotenv.config();
 
@@ -27,7 +30,7 @@ app.set('views', __dirname + '/views');
 
 // Middleware to attach models to request object
 app.use((req, res, next) => {
-  req.models = { User, Product };
+  req.models = { User, Product, Payment };
   next();
 });
 
@@ -47,7 +50,7 @@ app.get('/products', async (req, res) => {
 });
 
 // Define the /profile route
-app.get('/profile', async (req, res) => {
+app.get('/profile', authMiddleware, async (req, res) => {
   try {
     const user = await req.models.User.findByPk(req.user.userId);
     res.render('profile', { user });
@@ -67,10 +70,16 @@ app.get('/success', (req, res) => {
   res.render('success');
 });
 
+// Define the /login route
+app.get('/login', (req, res) => {
+  res.render('login');
+});
+
 app.use('/api', orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/checkout', checkoutRoutes); // Use the checkout routes
+app.use('/api/payments', paymentRoutes); // Use the payment routes
 app.use('/', swaggerRoutes);  
 
 const PORT = process.env.PORT || 5004;
