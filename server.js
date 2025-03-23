@@ -11,6 +11,7 @@ const swaggerRoutes = require('./swagger');
 const User = require('./models/user')(sequelize, require('sequelize').DataTypes);
 const Product = require('./models/product')(sequelize, require('sequelize').DataTypes);
 const Payment = require('./models/payment')(sequelize, require('sequelize').DataTypes); // Import the Payment model
+const Order = require('./models/order')(sequelize, require('sequelize').DataTypes); // Import the Order model
 const authMiddleware = require('./middleware/authMiddleWare'); // Import the auth middleware
 
 dotenv.config();
@@ -30,7 +31,7 @@ app.set('views', __dirname + '/views');
 
 // Middleware to attach models to request object
 app.use((req, res, next) => {
-  req.models = { User, Product, Payment };
+  req.models = { User, Product, Payment, Order };
   next();
 });
 
@@ -82,7 +83,12 @@ app.use('/api/checkout', checkoutRoutes); // Use the checkout routes
 app.use('/api/payments', paymentRoutes); // Use the payment routes
 app.use('/', swaggerRoutes);  
 
-const PORT = process.env.PORT || 5004;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Sync the models with the database
+sequelize.sync().then(() => {
+  const PORT = process.env.PORT || 5004;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error('Unable to sync the database:', err);
 });
