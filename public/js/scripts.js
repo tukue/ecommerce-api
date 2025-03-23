@@ -59,16 +59,12 @@ function addToCart(event) {
 document.getElementById('search-input').addEventListener('input', async (event) => {
   const query = event.target.value.toLowerCase();
   try {
-    const response = await fetch('/products');
+    const response = await fetch(`/api/products/search?name=${query}`);
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     const products = await response.json();
-    const filteredProducts = products.filter(product => 
-      product.name.toLowerCase().includes(query) ||
-      product.description.toLowerCase().includes(query)
-    );
-    displayProducts(filteredProducts);
+    displayProducts(products);
   } catch (error) {
     console.error('Error fetching products:', error);
   }
@@ -78,15 +74,17 @@ document.getElementById('search-input').addEventListener('input', async (event) 
 async function fetchProfile() {
   const token = localStorage.getItem('token');
   if (!token) {
+    console.error('No token found in localStorage'); // Debugging: Log if no token is found
     window.location.href = '/login';
     return;
   }
 
   try {
+    console.log('Token being sent:', token); // Debugging: Log the token being sent
     const response = await fetch('/api/auth/profile', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`, // Include the token in the request headers
         'Content-Type': 'application/json',
       },
     });

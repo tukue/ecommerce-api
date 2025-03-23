@@ -7,13 +7,6 @@ router.post('/create-checkout-session', async (req, res) => {
 
   const lineItems = cart.map(item => {
     const unitAmount = Math.round(item.price * 100); // Convert price to cents
-    console.log(`Item: ${item.name}, Price: ${item.price}, Unit Amount: ${unitAmount}`);
-    
-    if (isNaN(unitAmount)) {
-      console.error(`Invalid unit amount for item: ${item.name}`);
-      return res.status(400).json({ error: `Invalid unit amount for item: ${item.name}` });
-    }
-
     return {
       price_data: {
         currency: 'usd',

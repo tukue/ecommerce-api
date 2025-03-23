@@ -19,7 +19,7 @@ document.getElementById('login-form').addEventListener('submit', async (event) =
     }
 
     const data = await response.json();
-    localStorage.setItem('token', data.token);
+    localStorage.setItem('token', data.token); // Store the token in localStorage
     window.location.href = '/profile';
   } catch (error) {
     document.getElementById('error-message').textContent = error.message;
