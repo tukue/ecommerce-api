@@ -128,5 +128,32 @@ router.put('/:id', productController.updateProduct);
  *         description: Internal server error
  */
 router.delete('/:id', productController.deleteProduct);
-router.get('/:id', productController.getProductById); // Ensure this route exists
+
+/**
+ * @swagger
+ * /api/products/search:
+ *   get:
+ *     summary: Search products by name
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The product name to search for
+ *     responses:
+ *       200:
+ *         description: List of matching products
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/search', productController.searchProductsByName);
+
 module.exports = router;
