@@ -29,6 +29,25 @@ const scripts = {
       `).join('');
   },
 
+  // Fetch Products
+  async fetchProducts() {
+      try {
+          const response = await fetch('/api/products');
+          if (!response.ok) throw new Error('Failed to fetch products');
+          
+          const products = await response.json();
+          this.displayProducts(products);
+          return products;
+      } catch (error) {
+          console.error('Error fetching products:', error);
+          const errorElement = document.getElementById('error-message');
+          if (errorElement) {
+              errorElement.textContent = 'Error fetching products';
+          }
+          return [];
+      }
+  },
+
   // Cart Operations
   addToCart(event) {
       if (!event || !event.target) return;
@@ -124,6 +143,14 @@ const scripts = {
               this.addToCart(e);
           }
       });
+
+      // Products button handler
+      const productsButton = document.getElementById('products-button');
+      if (productsButton) {
+          productsButton.addEventListener('click', () => {
+              this.fetchProducts();
+          });
+      }
 
       // Initial cart display
       this.updateCartDisplay();

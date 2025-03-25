@@ -118,7 +118,12 @@ const productController = {
    */
   async getProductById(req, res) {
     try {
-      const product = await req.models.Product.findByPk(req.params.id);
+      const productId = parseInt(req.params.id, 10);
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: 'Invalid product ID' });
+      }
+
+      const product = await req.models.Product.findByPk(productId);
       if (!product) {
         return res.status(404).json({ error: 'Product not found' });
       }

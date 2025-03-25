@@ -21,7 +21,9 @@ const setupDOM = () => {
     global.fetch = jest.fn();
     global.localStorage = {
         getItem: jest.fn(),
-        setItem: jest.fn()
+        setItem: jest.fn(),
+        clear: jest.fn(),
+        removeItem: jest.fn()
     };
 
     return dom;
@@ -48,6 +50,7 @@ describe('Frontend Functions', () => {
         scripts.displayProducts(testProducts);
         
         const container = document.getElementById('products-container');
+        expect(container).not.toBeNull(); // Ensure the container is not null
         expect(container.innerHTML).toContain('Test Product');
         expect(container.innerHTML).toContain('$10');
     });
