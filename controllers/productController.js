@@ -203,6 +203,48 @@ const productController = {
       console.error('Error deleting product:', error);
       return res.status(500).json({ error: error.message });
     }
+  },
+
+  /**
+   * @swagger
+   * /api/products/search:
+   *   get:
+   *     summary: Search products by name
+   *     tags: [Products]
+   *     parameters:
+   *       - in: query
+   *         name: name
+   *         schema:
+   *           type: string
+   *         required: true
+   *         description: The product name to search for
+   *     responses:
+   *       200:
+   *         description: List of matching products
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/Product'
+   *       500:
+   *         description: Internal server error
+   */
+  async searchProductsByName(req, res) {
+    try {
+      const { name } = req.query;
+      const products = await req.models.Product.findAll({
+        where: {
+          name: {
+            [Op.like]: `%${name}%`
+          }
+        }
+      });
+      return res.status(200).json(products);
+    } catch (error) {
+      console.error('Error searching products:', error);
+      return res.status(500).json({ error: error.message });
+    }
   }
 };
 
