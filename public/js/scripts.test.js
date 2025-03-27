@@ -13,6 +13,7 @@ const setupDOM = () => {
             <div id="cart-count">0</div>
             <input id="search-input" />
             <div id="error-message"></div>
+            <div id="profile-container"></div>
         </body>
     `);
 
@@ -79,15 +80,74 @@ describe('Frontend Functions', () => {
     });
 
     // Test Search Function
-    test('searches products', async () => {
-        const mockProducts = [{ id: '1', name: 'Test Product' }];
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve(mockProducts)
-        });
+    test('filters products by search query', () => {
+        const testProducts = [
+            { id: '1', name: 'Test Product', description: 'A test item' },
+            { id: '2', name: 'Another Item', description: 'Not matching' }
+        ];
+        scripts.state.products = testProducts;
 
-        await scripts.searchProducts('test');
+        // Mock displayProducts to verify it's called with filtered results
+        const displaySpy = jest.spyOn(scripts, 'displayProducts');
+
+        // Test search by name
+        scripts.searchProducts('test');
+        expect(displaySpy).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({ id: '1' })
+            ])
+        );
+        expect(displaySpy).toHaveBeenCalledWith(
+            expect.not.arrayContaining([
+                expect.objectContaining({ id: '2' })
+            ])
+        );
+
+        // Test search by description
+        displaySpy.mockClear();
+        scripts.searchProducts('test item');
+        expect(displaySpy).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({ id: '1' })
+            ])
+        );
+
+        // Test empty search
+        displaySpy.mockClear();
+        scripts.searchProducts('');
+        expect(displaySpy).toHaveBeenCalledWith(testProducts);
+
+        // Test no matches
+        displaySpy.mockClear();
+        scripts.searchProducts('nonexistent');
+        expect(displaySpy).toHaveBeenCalledWith([]);
+
+        displaySpy.mockRestore();
+    });
+
+    // Test Profile Display
+    test('displays profile information correctly', () => {
+        const testUser = {
+            username: 'testuser',
+            email: 'test@example.com',
+            orders: [
+                {
+                    id: 1,
+                    total: 100,
+                    status: 'completed',
+                    createdAt: new Date().toISOString()
+                }
+            ]
+        };
+
+        scripts.displayProfile(testUser);
         
-        expect(fetch).toHaveBeenCalledWith(expect.stringContaining('test'));
+        const container = document.getElementById('profile-container');
+        expect(container).not.toBeNull();
+        expect(container.innerHTML).toContain('testuser');
+        expect(container.innerHTML).toContain('test@example.com');
+        expect(container.innerHTML).toContain('Order #1');
+        expect(container.innerHTML).toContain('$100');
+        expect(container.innerHTML).toContain('completed');
     });
 });

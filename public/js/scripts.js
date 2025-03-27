@@ -3,7 +3,8 @@ const scripts = {
   // Initialize state
   state: {
       cart: [],
-      products: []
+      products: [],
+      user: null
   },
 
   // Display Products
@@ -46,6 +47,73 @@ const scripts = {
           }
           return [];
       }
+  },
+
+  // Profile Operations
+  async fetchProfile() {
+      try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+              window.location.href = '/login';
+              return;
+          }
+
+          const response = await fetch('/api/auth/profile', {
+              headers: {
+                  'Authorization': `Bearer ${token}`
+              }
+          });
+
+          if (!response.ok) {
+              if (response.status === 401) {
+                  localStorage.removeItem('token');
+                  window.location.href = '/login';
+                  return;
+              }
+              throw new Error('Failed to fetch profile');
+          }
+
+          const data = await response.json();
+          this.displayProfile(data.user);
+          return data.user;
+      } catch (error) {
+          console.error('Error fetching profile:', error);
+          const container = document.getElementById('profile-container');
+          if (container) {
+              container.innerHTML = '<p class="error">Error loading profile. Please try again.</p>';
+          }
+          return null;
+      }
+  },
+
+  displayProfile(user) {
+      const container = document.getElementById('profile-container');
+      if (!container) return;
+
+      container.innerHTML = `
+          <div class="profile-info">
+              <h2>Profile Information</h2>
+              <p><strong>Username:</strong> ${user.username}</p>
+              <p><strong>Email:</strong> ${user.email}</p>
+          </div>
+          ${user.orders ? `
+              <div class="recent-orders">
+                  <h3>Recent Orders</h3>
+                  ${user.orders.length > 0 ? `
+                      <ul>
+                          ${user.orders.map(order => `
+                              <li>
+                                  <p>Order #${order.id}</p>
+                                  <p>Total: $${order.total}</p>
+                                  <p>Status: ${order.status}</p>
+                                  <p>Date: ${new Date(order.createdAt).toLocaleDateString()}</p>
+                              </li>
+                          `).join('')}
+                      </ul>
+                  ` : '<p>No recent orders</p>'}
+              </div>
+          ` : ''}
+      `;
   },
 
   // Cart Operations
@@ -105,68 +173,59 @@ const scripts = {
   },
 
   // Search functionality
-  async searchProducts(query) {
-      try {
-          const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
-          if (!response.ok) throw new Error('Search failed');
-          
-          const products = await response.json();
-          this.displayProducts(products);
-          return products;
-      } catch (error) {
-          console.error('Search error:', error);
-          const errorElement = document.getElementById('error-message');
-          if (errorElement) {
-              errorElement.textContent = 'Error searching products';
-          }
-          return [];
+  searchProducts(query) {
+      if (!query) {
+          this.displayProducts(this.state.products);
+          return;
       }
+
+      const filteredProducts = this.state.products.filter(product => 
+          product.name.toLowerCase().includes(query.toLowerCase()) ||
+          (product.description && product.description.toLowerCase().includes(query.toLowerCase()))
+      );
+
+      this.displayProducts(filteredProducts);
   },
 
   // Event listeners
   setupEventListeners() {
-      // Search input handler
+      // Products container click event
+      const productsContainer = document.getElementById('products-container');
+      if (productsContainer) {
+          productsContainer.addEventListener('click', (e) => {
+              if (e.target.classList.contains('add-to-cart-btn')) {
+                  this.addToCart(e);
+              }
+          });
+      }
+
+      // Search input event
       const searchInput = document.getElementById('search-input');
       if (searchInput) {
-          let debounceTimeout;
           searchInput.addEventListener('input', (e) => {
-              clearTimeout(debounceTimeout);
-              debounceTimeout = setTimeout(() => {
-                  this.searchProducts(e.target.value);
-              }, 300);
+              this.searchProducts(e.target.value);
           });
       }
 
-      // Add to cart buttons
-      document.addEventListener('click', (e) => {
-          if (e.target.classList.contains('add-to-cart-btn')) {
-              this.addToCart(e);
-          }
-      });
-
-      // Products button handler
-      const productsButton = document.getElementById('products-button');
-      if (productsButton) {
-          productsButton.addEventListener('click', () => {
-              this.fetchProducts();
-          });
+      // Profile container
+      const profileContainer = document.getElementById('profile-container');
+      if (profileContainer) {
+          this.fetchProfile();
       }
-
-      // Initial cart display
-      this.updateCartDisplay();
   },
 
   // Initialize
-  init() {
+  async init() {
+      const products = await this.fetchProducts();
+      this.state.products = products;
       this.setupEventListeners();
-      return this;
   }
 };
 
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = scripts;
-} else if (typeof window !== 'undefined') {
-  window.scripts = scripts;
+} else {
+  // Initialize when DOM is loaded
   document.addEventListener('DOMContentLoaded', () => scripts.init());
 }
