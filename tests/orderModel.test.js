@@ -1,5 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const OrderModel = require('../models/order');
+const UserModel = require('../models/user');
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
@@ -7,8 +8,13 @@ const sequelize = new Sequelize({
   logging: false
 });
 
-// Initialize the Order model
+// Initialize models
 const Order = OrderModel(sequelize, DataTypes);
+const User = UserModel(sequelize, DataTypes);
+
+// Set up associations
+User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
+Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 describe('Order Model', () => {
   beforeAll(async () => {
@@ -21,23 +27,29 @@ describe('Order Model', () => {
 
   beforeEach(async () => {
     await Order.destroy({ where: {}, truncate: true });
+    await User.destroy({ where: {}, truncate: true });
   });
 
   it('should create an order successfully', async () => {
+    // Create a user first
+    const user = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123'
+    });
+
     const validOrder = {
-      userId: 1,
-      productId: 1,
-      quantity: 2,
-      totalPrice: 200.0
+      userId: user.id,
+      total: 200.0,
+      status: 'pending'
     };
 
     const order = await Order.create(validOrder);
     
     expect(order).toBeDefined();
     expect(order.userId).toBe(validOrder.userId);
-    expect(order.productId).toBe(validOrder.productId);
-    expect(order.quantity).toBe(validOrder.quantity);
-    expect(order.totalPrice).toBe(validOrder.totalPrice);
+    expect(order.total).toBe(validOrder.total);
+    expect(order.status).toBe(validOrder.status);
   });
 
   it('should not create an order without required fields', async () => {
@@ -48,58 +60,63 @@ describe('Order Model', () => {
     await expect(Order.create(invalidOrder)).rejects.toThrow();
   });
 
-  it('should not create an order with negative quantity', async () => {
+  it('should not create an order with negative total', async () => {
+    // Create a user first
+    const user = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123'
+    });
+
     const invalidOrder = {
-      userId: 1,
-      productId: 1,
-      quantity: -2,
-      totalPrice: 200.0
+      userId: user.id,
+      total: -100,
+      status: 'pending'
     };
 
     await expect(Order.create(invalidOrder)).rejects.toThrow();
   });
 
-  it('should not create an order with negative total price', async () => {
+  it('should not create an order with invalid status', async () => {
+    // Create a user first
+    const user = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123'
+    });
+
     const invalidOrder = {
-      userId: 1,
-      productId: 1,
-      quantity: 2,
-      totalPrice: -200.0
+      userId: user.id,
+      total: 100,
+      status: 'invalid'
     };
 
     await expect(Order.create(invalidOrder)).rejects.toThrow();
   });
 
-  it('should not create an order with non-integer quantity', async () => {
-    const invalidOrder = {
-      userId: 1,
-      productId: 1,
-      quantity: 2.5,
-      totalPrice: 200.0
-    };
+  it('should fetch order with associated user', async () => {
+    // Create a user first
+    const user = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123'
+    });
 
-    await expect(Order.create(invalidOrder)).rejects.toThrow();
-  });
+    // Create an order
+    const order = await Order.create({
+      userId: user.id,
+      total: 200.0,
+      status: 'pending'
+    });
 
-  it('should not create an order with non-integer userId', async () => {
-    const invalidOrder = {
-      userId: 1.5,
-      productId: 1,
-      quantity: 2,
-      totalPrice: 200.0
-    };
+    // Fetch order with user
+    const fetchedOrder = await Order.findByPk(order.id, {
+      include: [{ model: User, as: 'user' }]
+    });
 
-    await expect(Order.create(invalidOrder)).rejects.toThrow();
-  });
-
-  it('should not create an order with non-integer productId', async () => {
-    const invalidOrder = {
-      userId: 1,
-      productId: 1.5,
-      quantity: 2,
-      totalPrice: 200.0
-    };
-
-    await expect(Order.create(invalidOrder)).rejects.toThrow();
+    expect(fetchedOrder).toBeDefined();
+    expect(fetchedOrder.user).toBeDefined();
+    expect(fetchedOrder.user.id).toBe(user.id);
+    expect(fetchedOrder.user.username).toBe(user.username);
   });
 });

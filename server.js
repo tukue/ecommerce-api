@@ -12,7 +12,7 @@ const User = require('./models/user')(sequelize, require('sequelize').DataTypes)
 const Product = require('./models/product')(sequelize, require('sequelize').DataTypes);
 const Payment = require('./models/payment')(sequelize, require('sequelize').DataTypes); // Import the Payment model
 const Order = require('./models/order')(sequelize, require('sequelize').DataTypes); // Import the Order model
-const authMiddleware = require('./middleware/authMiddleWare'); // Import the auth middleware
+const { authMiddleware } = require('./middleware/authMiddleWare'); // Import the auth middleware
 
 dotenv.config();
 
@@ -53,7 +53,7 @@ app.get('/products', async (req, res) => {
 // Define the /profile route
 app.get('/profile', authMiddleware, async (req, res) => {
   try {
-    const user = await req.models.User.findByPk(req.user.userId);
+    const user = await req.models.User.findByPk(req.user.id);
     res.render('profile', { user });
   } catch (error) {
     console.error('Error fetching profile:', error);

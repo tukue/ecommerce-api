@@ -1,7 +1,14 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class Order extends Model {}
+  class Order extends Model {
+    static associate(models) {
+      Order.belongsTo(models.User, {
+        foreignKey: 'userId',
+        as: 'user'
+      });
+    }
+  }
 
   Order.init({
     userId: {
@@ -12,34 +19,27 @@ module.exports = (sequelize, DataTypes) => {
         isInt: true
       }
     },
-    productId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        notNull: true,
-        isInt: true
-      }
-    },
-    quantity: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        notNull: true,
-        isInt: true,
-        min: 1
-      }
-    },
-    totalPrice: {
+    total: {
       type: DataTypes.FLOAT,
       allowNull: false,
       validate: {
         notNull: true,
         min: 0
       }
+    },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+        isIn: [['pending', 'completed', 'cancelled']]
+      }
     }
   }, {
     sequelize,
-    modelName: 'Order'
+    modelName: 'Order',
+    tableName: 'orders',
+    timestamps: true
   });
 
   return Order;

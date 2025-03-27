@@ -1,6 +1,14 @@
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 
-const authMiddleware = (req, res, next) => {
+// Create rate limiter for login attempts
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login attempts per windowMs
+  message: { message: 'Too many login attempts, please try again after 15 minutes' }
+});
+
+const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -10,11 +18,23 @@ const authMiddleware = (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    req.user = decoded;
+    // Check if user still exists
+    const user = await req.models.User.findByPk(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Add user to request object
+    req.user = user;
     next();
   } catch (error) {
-    return res.status(400).json({ message: 'Invalid token' });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token has expired' });
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    return res.status(401).json({ message: 'Invalid token' });
   }
 };
 
-module.exports = authMiddleware;
+module.exports = { authMiddleware, loginLimiter };

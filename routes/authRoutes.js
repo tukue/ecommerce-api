@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const authMiddleware = require('../middleware/authMiddleWare');
+const { authMiddleware, loginLimiter } = require('../middleware/authMiddleWare');
 
 /**
  * @swagger
  * tags:
  *   name: Authentication
- *   description: User authentication and management
+ *   description: User authentication endpoints
  */
 
 /**
@@ -65,13 +65,13 @@ router.post('/register', authController.register);
  *                 type: string
  *     responses:
  *       200:
- *         description: User logged in successfully
- *       400:
+ *         description: Login successful
+ *       401:
  *         description: Invalid credentials
  *       500:
  *         description: Internal server error
  */
-router.post('/login', authController.login);
+router.post('/login', loginLimiter, authController.login);
 
 /**
  * @swagger
@@ -83,14 +83,71 @@ router.post('/login', authController.login);
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: User profile retrieved successfully
- *       400:
- *         description: Invalid token
+ *         description: Profile retrieved successfully
+ *       401:
+ *         description: Not authenticated
  *       404:
  *         description: User not found
  *       500:
  *         description: Internal server error
  */
 router.get('/profile', authMiddleware, authController.getProfile);
+
+/**
+ * @swagger
+ * /api/auth/request-reset:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset token generated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/request-reset', authController.requestPasswordReset);
+
+/**
+ * @swagger
+ * /api/auth/reset:
+ *   post:
+ *     summary: Reset password
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               token:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid or expired token
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/reset', authController.resetPassword);
 
 module.exports = router;

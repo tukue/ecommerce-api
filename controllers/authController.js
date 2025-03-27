@@ -1,77 +1,24 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { Op } = require('sequelize');
 
-/**
- * @swagger
- * components:
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
- *   schemas:
- *     User:
- *       type: object
- *       required:
- *         - username
- *         - email
- *         - password
- *       properties:
- *         id:
- *           type: integer
- *           description: The auto-generated id of the user
- *         username:
- *           type: string
- *         email:
- *           type: string
- *         password:
- *           type: string
- *       example:
- *         id: 1
- *         username: testuser
- *         email: test@example.com
- *         password: password123
- */
 const authController = {
-  /**
-   * @swagger
-   * /api/auth/register:
-   *   post:
-   *     summary: Register a new user
-   *     tags: [Authentication]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - username
-   *               - email
-   *               - password
-   *             properties:
-   *               username:
-   *                 type: string
-   *               email:
-   *                 type: string
-   *               password:
-   *                 type: string
-   *     responses:
-   *       201:
-   *         description: User registered successfully
-   *       400:
-   *         description: User already exists
-   *       500:
-   *         description: Internal server error
-   */
   async register(req, res) {
     try {
       const { username, email, password } = req.body;
 
       // Check if user already exists
-      const existingUser = await req.models.User.findOne({ where: { email } });
+      const existingUser = await req.models.User.findOne({ 
+        where: { 
+          [Op.or]: [{ email }, { username }] 
+        } 
+      });
+      
       if (existingUser) {
-        return res.status(400).json({ message: 'User already exists' });
+        return res.status(400).json({ 
+          message: 'User with this email or username already exists' 
+        });
       }
 
       // Create new user
@@ -88,9 +35,11 @@ const authController = {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
-      // Remove password from response
+      // Remove sensitive data from response
       const userResponse = user.toJSON();
       delete userResponse.password;
+      delete userResponse.resetToken;
+      delete userResponse.resetTokenExpiry;
 
       return res.status(201).json({
         user: userResponse,
@@ -102,34 +51,6 @@ const authController = {
     }
   },
 
-  /**
-   * @swagger
-   * /api/auth/login:
-   *   post:
-   *     summary: Login a user
-   *     tags: [Authentication]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - email
-   *               - password
-   *             properties:
-   *               email:
-   *                 type: string
-   *               password:
-   *                 type: string
-   *     responses:
-   *       200:
-   *         description: User logged in successfully
-   *       400:
-   *         description: Invalid credentials
-   *       500:
-   *         description: Internal server error
-   */
   async login(req, res) {
     try {
       const { email, password } = req.body;
@@ -137,13 +58,13 @@ const authController = {
       // Find user
       const user = await req.models.User.findOne({ where: { email } });
       if (!user) {
-        return res.status(400).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Invalid credentials' });
       }
 
       // Check password
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return res.status(400).json({ message: 'Invalid credentials' });
+      const isPasswordValid = await user.validatePassword(password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Invalid credentials' });
       }
 
       // Generate token
@@ -153,9 +74,11 @@ const authController = {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
-      // Remove password from response
+      // Remove sensitive data from response
       const userResponse = user.toJSON();
       delete userResponse.password;
+      delete userResponse.resetToken;
+      delete userResponse.resetTokenExpiry;
 
       return res.status(200).json({
         user: userResponse,
@@ -167,38 +90,99 @@ const authController = {
     }
   },
 
-  /**
-   * @swagger
-   * /api/auth/profile:
-   *   get:
-   *     summary: Get user profile
-   *     tags: [Authentication]
-   *     security:
-   *       - bearerAuth: []
-   *     responses:
-   *       200:
-   *         description: User profile retrieved successfully
-   *       400:
-   *         description: Invalid token
-   *       404:
-   *         description: User not found
-   *       500:
-   *         description: Internal server error
-   */
   async getProfile(req, res) {
     try {
-      const user = await req.models.User.findByPk(req.user.userId);
+      // Get user with associated data
+      const user = await req.models.User.findByPk(req.user.id, {
+        include: [
+          {
+            model: req.models.Order,
+            as: 'orders',
+            attributes: ['id', 'total', 'status', 'createdAt'],
+            limit: 5,
+            order: [['createdAt', 'DESC']]
+          }
+        ],
+        attributes: {
+          exclude: ['password', 'resetToken', 'resetTokenExpiry']
+        }
+      });
+
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      // Remove password from response
-      const userResponse = user.toJSON();
-      delete userResponse.password;
-
-      return res.status(200).json(userResponse);
+      return res.status(200).json({ user });
     } catch (error) {
-      console.error('Get profile error:', error);
+      console.error('Profile fetch error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  async requestPasswordReset(req, res) {
+    try {
+      const { email } = req.body;
+      const user = await req.models.User.findOne({ where: { email } });
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+
+      // Save hashed token
+      const hashedToken = await bcrypt.hash(resetToken, 12);
+      await user.update({
+        resetToken: hashedToken,
+        resetTokenExpiry
+      });
+
+      // In a real application, send this via email
+      return res.status(200).json({
+        message: 'Password reset token generated',
+        resetToken // In production, this should be sent via email
+      });
+    } catch (error) {
+      console.error('Password reset request error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
+
+  async resetPassword(req, res) {
+    try {
+      const { token, newPassword } = req.body;
+
+      // Find user with valid reset token
+      const user = await req.models.User.findOne({
+        where: {
+          resetTokenExpiry: {
+            [Op.gt]: new Date()
+          }
+        }
+      });
+
+      if (!user) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
+      }
+
+      // Verify token
+      const isValidToken = await bcrypt.compare(token, user.resetToken);
+      if (!isValidToken) {
+        return res.status(400).json({ message: 'Invalid reset token' });
+      }
+
+      // Update password
+      await user.update({
+        password: newPassword,
+        resetToken: null,
+        resetTokenExpiry: null
+      });
+
+      return res.status(200).json({ message: 'Password reset successful' });
+    } catch (error) {
+      console.error('Password reset error:', error);
       return res.status(500).json({ error: error.message });
     }
   }
