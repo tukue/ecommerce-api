@@ -61,6 +61,10 @@ document.getElementById('checkout-button').addEventListener('click', async () =>
     }
 
     const { id } = await response.json();
+
+    // Store the session ID in local storage
+    localStorage.setItem('checkoutSessionId', id);
+
     const stripe = Stripe(window.STRIPE_PUBLIC_KEY); // Use the Stripe public key from the global window object
     await stripe.redirectToCheckout({ sessionId: id });
   } catch (error) {

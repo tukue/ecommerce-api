@@ -44,11 +44,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     resetToken: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true // Allow null because it will only be set when a password reset is requested
     },
     resetTokenExpiry: {
       type: DataTypes.DATE,
-      allowNull: true
+      allowNull: true // Allow null because it will only be set when a password reset is requested
     }
   }, {
     sequelize,

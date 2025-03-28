@@ -84,7 +84,7 @@ app.use('/api/payments', paymentRoutes); // Use the payment routes
 app.use('/', swaggerRoutes);  
 
 // Sync the models with the database
-sequelize.sync().then(() => {
+sequelize.sync( {alter: true}).then(() => {
   const PORT = process.env.PORT || 5004;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
