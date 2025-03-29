@@ -5,7 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Order.belongsTo(models.User, {
         foreignKey: 'userId',
-        as: 'user'
+        as: 'user' // Alias for the association
       });
     }
   }

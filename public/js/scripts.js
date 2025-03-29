@@ -49,73 +49,6 @@ const scripts = {
       }
   },
 
-  // Profile Operations
-  async fetchProfile() {
-      try {
-          const token = localStorage.getItem('token');
-          if (!token) {
-              window.location.href = '/login';
-              return;
-          }
-
-          const response = await fetch('/api/auth/profile', {
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              }
-          });
-
-          if (!response.ok) {
-              if (response.status === 401) {
-                  localStorage.removeItem('token');
-                  window.location.href = '/login';
-                  return;
-              }
-              throw new Error('Failed to fetch profile');
-          }
-
-          const data = await response.json();
-          this.displayProfile(data.user);
-          return data.user;
-      } catch (error) {
-          console.error('Error fetching profile:', error);
-          const container = document.getElementById('profile-container');
-          if (container) {
-              container.innerHTML = '<p class="error">Error loading profile. Please try again.</p>';
-          }
-          return null;
-      }
-  },
-
-  displayProfile(user) {
-      const container = document.getElementById('profile-container');
-      if (!container) return;
-
-      container.innerHTML = `
-          <div class="profile-info">
-              <h2>Profile Information</h2>
-              <p><strong>Username:</strong> ${user.username}</p>
-              <p><strong>Email:</strong> ${user.email}</p>
-          </div>
-          ${user.orders ? `
-              <div class="recent-orders">
-                  <h3>Recent Orders</h3>
-                  ${user.orders.length > 0 ? `
-                      <ul>
-                          ${user.orders.map(order => `
-                              <li>
-                                  <p>Order #${order.id}</p>
-                                  <p>Total: $${order.total}</p>
-                                  <p>Status: ${order.status}</p>
-                                  <p>Date: ${new Date(order.createdAt).toLocaleDateString()}</p>
-                              </li>
-                          `).join('')}
-                      </ul>
-                  ` : '<p>No recent orders</p>'}
-              </div>
-          ` : ''}
-      `;
-  },
-
   // Cart Operations
   addToCart(event) {
       if (!event || !event.target) return;
@@ -206,12 +139,6 @@ const scripts = {
               this.searchProducts(e.target.value);
           });
       }
-
-      // Profile container
-      const profileContainer = document.getElementById('profile-container');
-      if (profileContainer) {
-          this.fetchProfile();
-      }
   },
 
   // Initialize
@@ -222,10 +149,81 @@ const scripts = {
   }
 };
 
+// Fetch profile
+async function fetchProfile() {
+  try {
+    const token = localStorage.getItem('token'); // Retrieve the token from localStorage
+    if (!token) {
+      window.location.href = '/login'; // Redirect to login if no token is found
+      return;
+    }
+
+    const response = await fetch('/api/auth/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}` // Include the token in the Authorization header
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('token'); // Clear invalid token
+        window.location.href = '/login'; // Redirect to login
+        return;
+      }
+      throw new Error('Failed to fetch profile');
+    }
+
+    const data = await response.json();
+    displayProfile(data.user); // Display the profile data
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    const container = document.getElementById('profile-container');
+    if (container) {
+      container.innerHTML = '<p class="error">Error loading profile. Please try again.</p>';
+    }
+  }
+}
+
+function displayProfile(user) {
+  const container = document.getElementById('profile-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="profile-info">
+      <h2>Profile Information</h2>
+      <p><strong>Username:</strong> ${user.username}</p>
+      <p><strong>Email:</strong> ${user.email}</p>
+    </div>
+    ${user.orders ? `
+      <div class="recent-orders">
+        <h3>Recent Orders</h3>
+        ${user.orders.length > 0 ? `
+          <ul>
+            ${user.orders.map(order => `
+              <li>
+                <p>Order #${order.id}</p>
+                <p>Total: $${order.total}</p>
+                <p>Status: ${order.status}</p>
+                <p>Date: ${new Date(order.createdAt).toLocaleDateString()}</p>
+              </li>
+            `).join('')}
+          </ul>
+        ` : '<p>No recent orders</p>'}
+      </div>
+    ` : ''}
+  `;
+}
+
 // Export for testing
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = scripts;
+  module.exports = {
+    ...scripts,
+    displayProfile, // Export displayProfile for testing
+  };
 } else {
   // Initialize when DOM is loaded
-  document.addEventListener('DOMContentLoaded', () => scripts.init());
+  document.addEventListener('DOMContentLoaded', () => {
+    scripts.init();
+    fetchProfile();
+  });
 }

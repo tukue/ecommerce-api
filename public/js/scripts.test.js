@@ -3,6 +3,7 @@ global.TextEncoder = require("util").TextEncoder;
 global.TextDecoder = require("util").TextDecoder;
 
 const { JSDOM } = require('jsdom');
+const { displayProfile } = require('./scripts'); // Import displayProfile
 
 // Simplified DOM setup
 const setupDOM = () => {
@@ -140,7 +141,7 @@ describe('Frontend Functions', () => {
             ]
         };
 
-        scripts.displayProfile(testUser);
+        displayProfile(testUser); // Use the imported displayProfile function
         
         const container = document.getElementById('profile-container');
         expect(container).not.toBeNull();

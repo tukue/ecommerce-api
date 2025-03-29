@@ -80,7 +80,7 @@ router.post('/login', loginLimiter, authController.login);
  *     summary: Get user profile
  *     tags: [Authentication]
  *     security:
- *       - bearerAuth: []
+ *       - bearerAuth: [] # Specify that this endpoint requires the bearerAuth security scheme
  *     responses:
  *       200:
  *         description: Profile retrieved successfully

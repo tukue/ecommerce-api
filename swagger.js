@@ -13,15 +13,56 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5004',
+        url: 'http://localhost:5004', // Update this to match your server URL
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT', // Optional, but recommended
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [], // Apply the bearerAuth security scheme globally
       },
     ],
   },
-  apis: ['./routes/*.js', './controllers/*.js'], // Files containing annotations as above
+  apis: ['./routes/*.js', './controllers/*.js'], // Files containing Swagger annotations
 };
 
 const specs = swaggerJsdoc(options);
 
 router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
+/**
+ * @swagger
+ * /api/auth/request-reset:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset token generated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/request-reset', authController.requestPasswordReset);
 
 module.exports = router;

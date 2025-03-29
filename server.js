@@ -14,6 +14,10 @@ const Payment = require('./models/payment')(sequelize, require('sequelize').Data
 const Order = require('./models/order')(sequelize, require('sequelize').DataTypes); // Import the Order model
 const { authMiddleware } = require('./middleware/authMiddleWare'); // Import the auth middleware
 
+// Define associations
+User.associate({ Order });
+Order.associate({ User });
+
 dotenv.config();
 
 const app = express();

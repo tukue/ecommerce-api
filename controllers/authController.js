@@ -77,8 +77,6 @@ const authController = {
       // Remove sensitive data from response
       const userResponse = user.toJSON();
       delete userResponse.password;
-      delete userResponse.resetToken;
-      delete userResponse.resetTokenExpiry;
 
       return res.status(200).json({
         user: userResponse,
@@ -86,13 +84,12 @@ const authController = {
       });
     } catch (error) {
       console.error('Login error:', error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   },
 
   async getProfile(req, res) {
     try {
-      // Get user with associated data
       const user = await req.models.User.findByPk(req.user.id, {
         include: [
           {
@@ -103,9 +100,7 @@ const authController = {
             order: [['createdAt', 'DESC']]
           }
         ],
-        attributes: {
-          exclude: ['password', 'resetToken', 'resetTokenExpiry']
-        }
+        attributes: { exclude: ['password'] }
       });
 
       if (!user) {
@@ -115,7 +110,7 @@ const authController = {
       return res.status(200).json({ user });
     } catch (error) {
       console.error('Profile fetch error:', error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   },
 

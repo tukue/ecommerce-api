@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       // Define associations here
       User.hasMany(models.Order, {
         foreignKey: 'userId',
-        as: 'orders'
+        as: 'orders' // Alias for the association
       });
     }
 
