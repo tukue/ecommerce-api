@@ -8,6 +8,13 @@ const authController = {
     try {
       const { username, email, password } = req.body;
 
+      // Validate password strength
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(password)) {
+        return res.status(400).json({
+          message: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.'
+        });
+      }
+
       // Check if user already exists
       const existingUser = await req.models.User.findOne({ 
         where: { 
@@ -41,7 +48,9 @@ const authController = {
       delete userResponse.resetToken;
       delete userResponse.resetTokenExpiry;
 
+      // Return success response
       return res.status(201).json({
+        message: 'Registration successful! Welcome to our platform.',
         user: userResponse,
         token
       });
@@ -58,13 +67,13 @@ const authController = {
       // Find user
       const user = await req.models.User.findOne({ where: { email } });
       if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Invalid email or password. Please try again.' });
       }
 
       // Check password
       const isPasswordValid = await user.validatePassword(password);
       if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Invalid email or password. Please try again.' });
       }
 
       // Generate token
@@ -94,7 +103,7 @@ const authController = {
         include: [
           {
             model: req.models.Order,
-            as: 'orders',
+            as: 'orders', // Use the alias defined in the association
             attributes: ['id', 'total', 'status', 'createdAt'],
             limit: 5,
             order: [['createdAt', 'DESC']]

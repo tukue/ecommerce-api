@@ -12,7 +12,14 @@
   </header>
   <main>
     <div id="profile-container"></div>
+    <button id="logout-button">Logout</button>
   </main>
   <script src="/js/scripts.js"></script>
+  <script>
+    document.getElementById('logout-button').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    });
+  </script>
 </body>
 </html>

@@ -133,7 +133,7 @@ describe('Auth Controller', () => {
         });
 
       expect(res.statusCode).toBe(401);
-      expect(res.body.message).toBe('Invalid credentials');
+      expect(res.body.message).toBe('Invalid email or password. Please try again.');
     });
   });
 
