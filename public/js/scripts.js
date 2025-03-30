@@ -24,6 +24,7 @@ const scripts = {
                   data-name="${product.name}"
                   data-price="${product.price}"
                   ${product.stock <= 0 ? 'disabled' : ''}>
+                  <img src="/images/cart.jpg" alt="Cart" class="cart-icon">
                   ${product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
               </button>
           </div>
@@ -52,7 +53,7 @@ const scripts = {
   // Cart Operations
   addToCart(event) {
       if (!event || !event.target) return;
-      
+
       const target = event.target;
       const productId = target.getAttribute('data-id');
       const productName = target.getAttribute('data-name');
@@ -61,12 +62,17 @@ const scripts = {
       if (!productId || !productName || isNaN(productPrice)) return;
 
       try {
+          // Retrieve the cart from localStorage or initialize an empty array
           let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+          // Check if the product already exists in the cart
           const existingItem = cart.find(item => item.id === productId);
 
           if (existingItem) {
+              // If the product exists, increment its quantity
               existingItem.quantity += 1;
           } else {
+              // If the product does not exist, add it with a quantity of 1
               cart.push({
                   id: productId,
                   name: productName,
@@ -75,30 +81,31 @@ const scripts = {
               });
           }
 
+          // Save the updated cart back to localStorage
           localStorage.setItem('cart', JSON.stringify(cart));
+
+          // Update the cart display
           this.updateCartDisplay();
-          return true;
+
+          // Notify the user
+          alert(`${productName} added to cart!`);
       } catch (error) {
           console.error('Error adding to cart:', error);
-          return false;
       }
   },
 
   updateCartDisplay() {
       const cartCount = document.getElementById('cart-count');
-      const cartTotal = document.getElementById('cart-total');
-      
       try {
+          // Retrieve the cart from localStorage
           const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-          
-          if (cartCount) {
-              const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-              cartCount.textContent = totalItems.toString();
-          }
 
-          if (cartTotal) {
-              const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-              cartTotal.textContent = `$${total.toFixed(2)}`;
+          // Calculate the total quantity of items in the cart
+          const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+          // Update the cart count display
+          if (cartCount) {
+              cartCount.textContent = totalItems.toString();
           }
       } catch (error) {
           console.error('Error updating cart display:', error);

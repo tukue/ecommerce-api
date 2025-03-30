@@ -16,15 +16,31 @@ async function displayCartItems() {
     const product = await response.json();
     const li = document.createElement('li');
     li.innerHTML = `
-      Product: ${product.name}, Quantity: ${item.quantity}
-      <button class="remove-from-cart" data-id="${item.id}">Remove</button>
+      <div class="cart-item">
+        <span>Product: ${product.name}</span>
+        <span>Price: $${product.price}</span>
+        <span>Quantity: 
+          <button class="decrease-quantity" data-id="${item.id}">-</button>
+          <span class="quantity">${item.quantity}</span>
+          <button class="increase-quantity" data-id="${item.id}">+</button>
+        </span>
+        <button class="remove-from-cart" data-id="${item.id}">Remove</button>
+      </div>
     `;
     cartItemsContainer.appendChild(li);
   }
 
-  // Add event listeners to "Remove" buttons
+  // Add event listeners to "Remove", "+" and "-" buttons
   document.querySelectorAll('.remove-from-cart').forEach(button => {
     button.addEventListener('click', removeFromCart);
+  });
+
+  document.querySelectorAll('.increase-quantity').forEach(button => {
+    button.addEventListener('click', increaseQuantity);
+  });
+
+  document.querySelectorAll('.decrease-quantity').forEach(button => {
+    button.addEventListener('click', decreaseQuantity);
   });
 }
 
@@ -34,6 +50,35 @@ function removeFromCart(event) {
   cart = cart.filter(item => item.id !== productId);
   localStorage.setItem('cart', JSON.stringify(cart));
   displayCartItems();
+}
+
+function increaseQuantity(event) {
+  const productId = event.target.getAttribute('data-id');
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  const item = cart.find(item => item.id === productId);
+  if (item) {
+    item.quantity += 1; // Increase the quantity
+    localStorage.setItem('cart', JSON.stringify(cart));
+    displayCartItems(); // Refresh the cart display
+  }
+}
+
+function decreaseQuantity(event) {
+  const productId = event.target.getAttribute('data-id');
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  const item = cart.find(item => item.id === productId);
+  if (item && item.quantity > 1) {
+    item.quantity -= 1; // Decrease the quantity
+    localStorage.setItem('cart', JSON.stringify(cart));
+    displayCartItems(); // Refresh the cart display
+  } else if (item && item.quantity === 1) {
+    // If quantity is 1, remove the item from the cart
+    cart = cart.filter(item => item.id !== productId);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    displayCartItems(); // Refresh the cart display
+  }
 }
 
 document.getElementById('checkout-button').addEventListener('click', async () => {
