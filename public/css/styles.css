@@ -19,7 +19,7 @@ main {
   margin: 2rem auto;
   padding: 0 1rem;
 }
-
+goi
 nav ul {
   list-style: none;
   padding: 0;
@@ -168,8 +168,8 @@ button.remove-from-cart:hover {
 }
 
 .cart-icon {
-  width: 30px; /* Adjust the size as needed */
-  height: 30px;
+  width: 45px; /* Adjust the size as needed */
+  height: 35px;
   margin-right: 8px;
   vertical-align: middle;
 }
@@ -193,4 +193,11 @@ button.remove-from-cart:hover {
   font-weight: bold;
   text-align: right;
   margin-top: 1rem;
+}
+
+.payment.payment-icon {
+  width: 24px; /* Adjust size as needed */
+  height: 24px;
+  vertical-align: middle;
+  margin-right: 8px;
 }

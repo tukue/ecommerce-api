@@ -92,14 +92,7 @@ function decreaseQuantity(event) {
 
 document.getElementById('checkout-button').addEventListener('click', async () => {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  // Ensure all prices are valid numbers
-  for (const item of cart) {
-    if (isNaN(item.price)) {
-      console.error(`Invalid price for item: ${item.name}`);
-      return;
-    }
-  }
+  const userId = localStorage.getItem('userId'); // Assume user ID is stored in localStorage
 
   try {
     const response = await fetch('/api/checkout/create-checkout-session', {
@@ -114,12 +107,25 @@ document.getElementById('checkout-button').addEventListener('click', async () =>
       throw new Error('Network response was not ok');
     }
 
-    const { id } = await response.json();
+    const { id, amount, currency } = await response.json();
 
-    // Store the session ID in local storage
-    localStorage.setItem('checkoutSessionId', id);
+    // Store the payment details in the database
+    await fetch('/api/payments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId,
+        orderId: id, // Assume the order ID is returned from the checkout session
+        stripePaymentId: id,
+        amount,
+        currency,
+        status: 'pending',
+      }),
+    });
 
-    const stripe = Stripe(window.STRIPE_PUBLIC_KEY); // Use the Stripe public key from the global window object
+    const stripe = Stripe(window.STRIPE_PUBLIC_KEY);
     await stripe.redirectToCheckout({ sessionId: id });
   } catch (error) {
     console.error('Error during checkout:', error);
