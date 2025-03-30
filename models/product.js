@@ -1,7 +1,17 @@
-const { DataTypes } = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
 
-module.exports = (sequelize, models) => {
-  const Product = sequelize.define('Product', {
+module.exports = (sequelize) => {
+  class Product extends Model {
+    static associate(models) {
+      // Associate Product with Order
+      Product.hasMany(models.Order, {
+        foreignKey: 'productId',
+        as: 'orders' // Alias for the association
+      });
+    }
+  }
+
+  Product.init({
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -38,15 +48,12 @@ module.exports = (sequelize, models) => {
       defaultValue: DataTypes.NOW,
     },
   }, {
-    tableName: 'products', // Ensure the table name is correct
+    sequelize,
+    modelName: 'Product',
+    tableName: 'products',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
-  });
-
-  Product.hasMany(models.Order, {
-    foreignKey: 'productId',
-    as: 'orders' // Alias for the association
   });
 
   return Product;

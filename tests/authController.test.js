@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const { Sequelize, DataTypes } = require('sequelize');
 const UserModel = require('../models/user');
 const OrderModel = require('../models/order');
+const ProductModel = require('../models/product');
 const authRoutes = require('../routes/authRoutes');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -22,16 +23,19 @@ const sequelize = new Sequelize({
 // Initialize models
 const User = UserModel(sequelize, DataTypes);
 const Order = OrderModel(sequelize, DataTypes);
+const Product = ProductModel(sequelize, DataTypes);
 
 // Set up associations
 User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
 Order.belongsTo(User, { foreignKey: 'userId' });
+Order.belongsTo(Product, { foreignKey: 'productId' });
+Product.hasMany(Order, { foreignKey: 'productId', as: 'orders' });
 
 // Setup express app
 const app = express();
 app.use(bodyParser.json());
 app.use((req, res, next) => {
-  req.models = { User, Order };
+  req.models = { User, Order, Product };
   next();
 });
 app.use('/api/auth', authRoutes);
@@ -48,6 +52,7 @@ describe('Auth Controller', () => {
   beforeEach(async () => {
     await User.destroy({ where: {}, truncate: true });
     await Order.destroy({ where: {}, truncate: true });
+    await Product.destroy({ where: {}, truncate: true });
   });
 
   describe('Registration', () => {
@@ -148,10 +153,18 @@ describe('Auth Controller', () => {
       // Create user (password will be hashed by model hooks)
       const user = await User.create(userData);
 
+      // Add a product
+      const product = await Product.create({
+        name: 'Test Product',
+        description: 'This is a test product',
+        price: 100.0,
+        stock: 10
+      });
+
       // Create some orders
       await Order.bulkCreate([
-        { userId: user.id, total: 100, status: 'completed' },
-        { userId: user.id, total: 200, status: 'pending' }
+        { userId: user.id, productId: product.id, quantity: 1, total: 100, status: 'completed' },
+        { userId: user.id, productId: product.id, quantity: 2, total: 200, status: 'pending' }
       ]);
 
       // Generate token

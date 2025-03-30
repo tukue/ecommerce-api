@@ -8,15 +8,18 @@ const authRoutes = require('./routes/authRoutes');
 const checkoutRoutes = require('./routes/checkoutRoutes'); // Import the checkout routes
 const paymentRoutes = require('./routes/paymentRoutes'); // Import the payment routes
 const swaggerRoutes = require('./swagger');
-const User = require('./models/user')(sequelize, require('sequelize').DataTypes);
-const Product = require('./models/product')(sequelize, require('sequelize').DataTypes);
-const Payment = require('./models/payment')(sequelize, require('sequelize').DataTypes); // Import the Payment model
-const Order = require('./models/order')(sequelize, require('sequelize').DataTypes); // Import the Order model
-const { authMiddleware } = require('./middleware/authMiddleWare'); // Import the auth middleware
+const { DataTypes } = require('sequelize');
+
+// Initialize models
+const User = require('./models/user')(sequelize, DataTypes);
+const Product = require('./models/product')(sequelize, DataTypes);
+const Payment = require('./models/payment')(sequelize, DataTypes);
+const Order = require('./models/order')(sequelize, DataTypes);
 
 // Define associations
 User.associate({ Order });
-Order.associate({ User });
+Order.associate({ User, Product });
+Product.associate({ Order });
 
 dotenv.config();
 
@@ -43,52 +46,16 @@ app.get('/', (req, res) => {
   res.render('index', { message: 'Welcome to the E-commerce API' });
 });
 
-// Define the /products route
-app.get('/products', async (req, res) => {
-  try {
-    const products = await req.models.Product.findAll();
-    res.json(products); // Return JSON data
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).send('Internal Server Error');
-  }
-});
-
-// Define the /profile route
-app.get('/profile', authMiddleware, async (req, res) => {
-  try {
-    const user = await req.models.User.findByPk(req.user.id);
-    res.render('profile', { user });
-  } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).send('Internal Server Error');
-  }
-});
-
-// Define the /cart route
-app.get('/cart', (req, res) => {
-  res.render('cart', { stripePublicKey: process.env.STRIPE_PUBLIC_KEY });
-});
-
-// Define the /success route
-app.get('/success', (req, res) => {
-  res.render('success');
-});
-
-// Define the /login route
-app.get('/login', (req, res) => {
-  res.render('login');
-});
-
+// Define routes
 app.use('/api', orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/checkout', checkoutRoutes); // Use the checkout routes
-app.use('/api/payments', paymentRoutes); // Use the payment routes
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use('/', swaggerRoutes);  
 
 // Sync the models with the database
-sequelize.sync( {alter: true}).then(() => {
+sequelize.sync({ alter: true }).then(() => {
   const PORT = process.env.PORT || 5004;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
