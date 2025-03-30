@@ -46,6 +46,10 @@ app.get('/', (req, res) => {
   res.render('index', { message: 'Welcome to the E-commerce API' });
 });
 
+app.get('/cart', (req, res) => {
+  res.render('cart', { stripePublicKey: process.env.STRIPE_PUBLIC_KEY });
+});
+
 // Define routes
 app.use('/api', orderRoutes);
 app.use('/api/products', productRoutes);
