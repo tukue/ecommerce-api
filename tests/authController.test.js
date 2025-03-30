@@ -55,7 +55,7 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'Password123'
       };
 
       const res = await request(app)

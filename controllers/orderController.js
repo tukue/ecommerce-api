@@ -79,9 +79,14 @@ const orderController = {
    *       500:
    *         description: Internal server error
    */
-  getAllOrders: async (req, res) => {
+  async getAllOrders(req, res) {
     try {
-      const orders = await Order.findAll();
+      const orders = await req.models.Order.findAll({
+        include: [
+          { model: req.models.User, as: 'user', attributes: ['id', 'username', 'email'] },
+          { model: req.models.Product, as: 'product', attributes: ['id', 'name', 'price'] }
+        ]
+      });
       res.status(200).json(orders);
     } catch (error) {
       console.error('Error getting orders:', error);
@@ -114,9 +119,14 @@ const orderController = {
    *       500:
    *         description: Internal server error
    */
-  getOrderById: async (req, res) => {
+  async getOrderById(req, res) {
     try {
-      const order = await Order.findByPk(req.params.id);
+      const order = await req.models.Order.findByPk(req.params.id, {
+        include: [
+          { model: req.models.User, as: 'user', attributes: ['id', 'username', 'email'] },
+          { model: req.models.Product, as: 'product', attributes: ['id', 'name', 'price'] }
+        ]
+      });
       if (!order) {
         return res.status(404).json({ message: 'Order not found' });
       }

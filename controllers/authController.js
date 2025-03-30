@@ -8,13 +8,6 @@ const authController = {
     try {
       const { username, email, password } = req.body;
 
-      // Validate password strength
-      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(password)) {
-        return res.status(400).json({
-          message: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.'
-        });
-      }
-
       // Check if user already exists
       const existingUser = await req.models.User.findOne({ 
         where: { 
@@ -25,6 +18,13 @@ const authController = {
       if (existingUser) {
         return res.status(400).json({ 
           message: 'User with this email or username already exists' 
+        });
+      }
+
+      // Validate password strength
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(password)) {
+        return res.status(400).json({
+          message: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.'
         });
       }
 

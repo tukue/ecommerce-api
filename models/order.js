@@ -3,9 +3,16 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Order extends Model {
     static associate(models) {
+      // Associate Order with User
       Order.belongsTo(models.User, {
         foreignKey: 'userId',
         as: 'user' // Alias for the association
+      });
+
+      // Associate Order with Product
+      Order.belongsTo(models.Product, {
+        foreignKey: 'productId',
+        as: 'product' // Alias for the association
       });
     }
   }
@@ -17,6 +24,22 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         notNull: true,
         isInt: true
+      }
+    },
+    productId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      validate: {
+        notNull: true,
+        isInt: true
+      }
+    },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      validate: {
+        notNull: true,
+        min: 1
       }
     },
     total: {
