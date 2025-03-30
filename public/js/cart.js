@@ -5,7 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function displayCartItems() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const cartItemsContainer = document.getElementById('cart-items');
+  const totalPriceContainer = document.getElementById('total-price'); // Add a container for total price
   cartItemsContainer.innerHTML = '';
+  let totalCartPrice = 0; // Initialize total cart price
 
   for (const item of cart) {
     const response = await fetch(`/api/products/${item.id}`);
@@ -14,11 +16,15 @@ async function displayCartItems() {
       continue;
     }
     const product = await response.json();
+    const itemTotalPrice = product.price * item.quantity; // Calculate total price for the item
+    totalCartPrice += itemTotalPrice; // Add to the total cart price
+
     const li = document.createElement('li');
     li.innerHTML = `
       <div class="cart-item">
         <span>Product: ${product.name}</span>
         <span>Price: $${product.price}</span>
+        <span>Total: $<span class="item-total-price" data-id="${item.id}">${itemTotalPrice.toFixed(2)}</span></span>
         <span>Quantity: 
           <button class="decrease-quantity" data-id="${item.id}">-</button>
           <span class="quantity">${item.quantity}</span>
@@ -29,6 +35,9 @@ async function displayCartItems() {
     `;
     cartItemsContainer.appendChild(li);
   }
+
+  // Update the total cart price in the DOM
+  totalPriceContainer.textContent = `Total: $${totalCartPrice.toFixed(2)}`;
 
   // Add event listeners to "Remove", "+" and "-" buttons
   document.querySelectorAll('.remove-from-cart').forEach(button => {

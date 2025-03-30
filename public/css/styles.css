@@ -187,3 +187,10 @@ button.remove-from-cart:hover {
 .cart-item span {
   margin: 0 0.5rem;
 }
+
+.total-price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: right;
+  margin-top: 1rem;
+}
