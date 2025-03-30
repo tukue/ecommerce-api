@@ -4,17 +4,8 @@ const bcrypt = require('bcryptjs');
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
-      // Associate User with Orders
-      User.hasMany(models.Order, {
-        foreignKey: 'userId',
-        as: 'orders',
-      });
-
-      // Associate User with Payments
-      User.hasMany(models.Payment, {
-        foreignKey: 'userId',
-        as: 'payments',
-      });
+      User.hasMany(models.Order, { foreignKey: 'userId', as: 'orders' });
+      User.hasMany(models.Payment, { foreignKey: 'userId', as: 'payments' });
     }
 
     // Instance method to validate password

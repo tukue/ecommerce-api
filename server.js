@@ -16,9 +16,10 @@ const Product = require('./models/product')(sequelize, DataTypes);
 const Payment = require('./models/payment')(sequelize, DataTypes);
 const Order = require('./models/order')(sequelize, DataTypes);
 
-// Define associations
-User.associate({ Order });
-Order.associate({ User, Product });
+// Pass all models to their associate methods
+User.associate({ Order, Payment });
+Order.associate({ User, Product, Payment });
+Payment.associate({ User, Order });
 Product.associate({ Order });
 
 dotenv.config();
