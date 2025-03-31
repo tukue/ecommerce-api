@@ -1,3 +1,5 @@
+
+
 # E-commerce API
 
 This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL. It provides endpoints for user authentication, product management, and order management.
@@ -36,6 +38,10 @@ The database schema includes the following associations:
    - **Association**: `User.hasMany(Payment)` and `Payment.belongsTo(User)`
 
 ## Getting Started
+
+## Project Page
+
+You can access the project page here: [E-commerce API Project Page](https://github.com/tukue/ecommerce-api) 
 
 ### Prerequisites
 
