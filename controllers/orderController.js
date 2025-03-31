@@ -180,17 +180,50 @@ const orderController = {
    */
   updateOrder: async (req, res) => {
     try {
-      const updatedOrder = await Order.update(req.body, {
-        where: { id: req.params.id },
-        returning: true,
-      });
-      if (!updatedOrder[0]) {
-        return res.status(404).json({ message: 'Order not found' });
+      const orderId = parseInt(req.params.id, 10);
+
+      // Validate the order ID
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: 'Invalid order ID' });
       }
-      res.status(200).json(updatedOrder[1][0]);
+
+      // Find the order by ID
+      const order = await req.models.Order.findByPk(orderId);
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      // Update the order with the provided fields
+      const { quantity, total, status } = req.body;
+
+      if (quantity !== undefined) {
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+          return res.status(400).json({ error: 'Quantity must be a positive integer' });
+        }
+        order.quantity = quantity;
+      }
+
+      if (total !== undefined) {
+        if (typeof total !== 'number' || total <= 0) {
+          return res.status(400).json({ error: 'Total must be a positive number' });
+        }
+        order.total = total;
+      }
+
+      if (status !== undefined) {
+        const allowedStatuses = ['pending', 'completed', 'cancelled'];
+        if (!allowedStatuses.includes(status)) {
+          return res.status(400).json({ error: `Status must be one of: ${allowedStatuses.join(', ')}` });
+        }
+        order.status = status;
+      }
+
+      await order.save();
+
+      return res.status(200).json({ message: 'Order updated successfully', order });
     } catch (error) {
       console.error('Error updating order:', error);
-      res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message });
     }
   },
 
