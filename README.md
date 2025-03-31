@@ -41,7 +41,7 @@ The database schema includes the following associations:
 
 ## Project Page
 
-You can access the project page here: [E-commerce API Project Page](https://github.com/tukue/ecommerce-api) 
+You can access the project page here: [E-commerce API project URL](https://github.com/tukue/ecommerce-api) 
 
 ### Prerequisites
 
@@ -52,8 +52,9 @@ You can access the project page here: [E-commerce API Project Page](https://gith
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/ecommerce-api.git
-   cd ecommerce-api# E-commerce API
+   git clone https://github.com/tukue/ecommerce-api.git
+   cd ecommerce-api# 
+   E-commerce API
 
 This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL. It provides endpoints for user authentication, product management, and order management.
 
