@@ -39,7 +39,7 @@ The database schema includes the following associations:
 
 ## Getting Started
 
-## Project Page
+## Project URL
 
 You can access the project page here: [E-commerce API project URL](https://github.com/tukue/ecommerce-api) 
 
