@@ -71,7 +71,7 @@ This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL
 git clone https://github.com/tukue/ecommerce-api
 cd ecommerce-api
 
-project url : https://github.com/tukue/ecommerce-api
+project URL: https://github.com/tukue/ecommerce-api
 
 APIs :
 Authentication
