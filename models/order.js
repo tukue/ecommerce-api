@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       Order.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
       Order.belongsTo(models.Product, { foreignKey: 'productId', as: 'product' });
+      Order.hasOne(models.Payment, { foreignKey: 'orderId', as: 'payment' });
     }
   }
 
@@ -21,9 +22,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    totalPrice: {
+    total: {
       type: DataTypes.FLOAT,
       allowNull: false,
+      defaultValue: 0.0,
     },
     status: {
       type: DataTypes.STRING,

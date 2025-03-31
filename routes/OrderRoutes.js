@@ -128,4 +128,27 @@ router.put('/orders/:id', orderController.updateOrder);
  */
 router.delete('/orders/:id', orderController.deleteOrder);
 
+/**
+ * @swagger
+ * /api/orders/{id}/complete:
+ *   put:
+ *     summary: Mark an order as completed
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: The order ID
+ *     responses:
+ *       200:
+ *         description: Order status updated to completed
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put('/orders/:id/complete', orderController.markOrderAsCompleted);
+
 module.exports = router;

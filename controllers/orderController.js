@@ -229,6 +229,42 @@ const orderController = {
       res.status(500).json({ error: error.message });
     }
   },
+
+  /**
+   * Mark an order as completed
+   * @param {Object} req - The request object
+   * @param {Object} res - The response object
+   */
+  async markOrderAsCompleted(req, res) {
+    try {
+      const orderId = parseInt(req.params.id, 10);
+
+      // Validate the order ID
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: 'Invalid order ID' });
+      }
+
+      // Find the order by ID
+      const order = await req.models.Order.findByPk(orderId);
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      // Check if the order is already completed
+      if (order.status === 'completed') {
+        return res.status(400).json({ error: 'Order is already completed' });
+      }
+
+      // Update the order status to completed
+      order.status = 'completed';
+      await order.save();
+
+      return res.status(200).json({ message: 'Order status updated to completed', order });
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  },
 };
 
 module.exports = orderController;
