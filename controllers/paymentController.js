@@ -77,14 +77,28 @@ const paymentController = {
   async createPayment(req, res) {
     try {
       const { userId, orderId, stripePaymentId, amount, currency, status } = req.body;
+
+      // Validate input data
+      if (!userId || !orderId || !amount || !currency) {
+        return res.status(400).json({ error: 'Missing required fields: userId, orderId, amount, or currency' });
+      }
+
+      // Check if the order exists
+      const order = await req.models.Order.findByPk(orderId);
+      if (!order) {
+        return res.status(404).json({ error: `Order with ID ${orderId} not found` });
+      }
+
+      // Create the payment
       const payment = await req.models.Payment.create({
         userId,
         orderId,
         stripePaymentId,
         amount,
         currency,
-        status
+        status,
       });
+
       return res.status(201).json(payment);
     } catch (error) {
       console.error('Error creating payment:', error);

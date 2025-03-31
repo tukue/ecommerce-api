@@ -27,6 +27,7 @@ const setupDOM = () => {
         clear: jest.fn(),
         removeItem: jest.fn()
     };
+    global.alert = jest.fn(); // Mock the alert function
 
     return dom;
 };

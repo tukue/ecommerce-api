@@ -53,11 +53,25 @@ const orderController = {
   createOrder: async (req, res) => {
     try {
       const { userId, productId, quantity, totalPrice } = req.body;
-      const order = await Order.create({ userId, productId, quantity, totalPrice });
-      res.status(201).json(order);
+
+      // Validate input data
+      if (!userId || !productId || !quantity || !totalPrice) {
+        return res.status(400).json({ error: 'Missing required fields: userId, productId, quantity, or totalPrice' });
+      }
+
+      // Create the order
+      const order = await req.models.Order.create({
+        userId,
+        productId,
+        quantity,
+        totalPrice,
+        status: 'pending', // Default status
+      });
+
+      return res.status(201).json(order);
     } catch (error) {
       console.error('Error creating order:', error);
-      res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: error.message });
     }
   },
 
