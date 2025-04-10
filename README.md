@@ -56,7 +56,32 @@ You can access the project page here: [E-commerce API project URL](https://githu
    cd ecommerce-api# 
    E-commerce API
 
-This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL. It provides endpoints for user authentication, product management, and order management.
+This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL. It provides endpoints for user authentication, product management, and order management. 
+
+Key Components:
+
+Backend API with Express.js
+PostgreSQL database with Sequelize ORM
+User authentication with JWT
+Stripe integration for payments
+Swagger API documentation
+EJS templating for server-side rendering
+
+Main Features:
+
+Product management
+Shopping cart functionality
+User authentication/profiles
+Secure checkout with Stripe
+Order management
+Search functionality
+Architecture:
+
+MVC pattern with separate routes, controllers, and models
+Frontend JavaScript for dynamic interactions
+RESTful API endpoints
+Separate test configurations for frontend (Jest + JSDOM) and backend (Jest + Supertest)
+The project follows modern web development practices with proper separation of concerns, security measures (like rate limiting), and comprehensive testing setup. It's structured as a full-stack application with both API and server-rendered views.
 
 ## Features
 
@@ -69,7 +94,7 @@ This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v20 or higher)
 - PostgreSQL
 
 ### Installation
