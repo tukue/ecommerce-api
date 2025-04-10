@@ -25,11 +25,33 @@ https://github.com/tukue/ecommerce-api
 
 ## Getting Started
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Set up environment variables
-4. Run the development server: `npm run dev`
+### Prerequisites
 
-## Author
+- Node.js (v14 or higher)
+- PostgreSQL
 
-Tukue
+### Installation
+
+1. Clone the repository:
+git clone https://github.com/tukue/ecommerce-api
+cd ecommerce-api
+
+project URL: https://github.com/tukue/ecommerce-api
+
+APIs :
+Authentication
+Register: POST /api/auth/register
+Login: POST /api/auth/login
+Get Profile: GET /api/auth/profile
+
+Products
+Create Product: POST /api/products
+Get All Products: GET /api/products
+Get Product by ID: GET /api/products/:id
+Update Product: PUT /api/products/:id
+
+Orders
+Create Order: POST /api/orders
+Get All Orders: GET /api/orders
+Get Order by ID: GET /api/orders/:id
+Update Order: PUT /api/orders/:id
