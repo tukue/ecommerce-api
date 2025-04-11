@@ -1,0 +1,33 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "title": "Application Traces",
+  "panels": [
+    {
+      "title": "Request Duration by Route",
+      "type": "graph",
+      "datasource": "Jaeger",
+      "targets": [
+        {
+          "query": "traces_duration_milliseconds",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Error Rate by Route",
+      "type": "graph",
+      "datasource": "Jaeger",
+      "targets": [
+        {
+          "query": "traces_error_total",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

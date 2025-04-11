@@ -1,3 +1,5 @@
+require('./config/tracer');
+
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -9,7 +11,9 @@ const checkoutRoutes = require('./routes/checkoutRoutes'); // Import the checkou
 const paymentRoutes = require('./routes/paymentRoutes'); // Import the payment routes
 const swaggerRoutes = require('./swagger');
 const { DataTypes } = require('sequelize');
-const { register, httpRequestDuration } = require('./config/metrics');
+const { register, httpRequestDuration, apiCallCounter } = require('./config/metrics');
+const telemetryMiddleware = require('./middleware/telemetry');
+const { trace } = require('@opentelemetry/api');
 
 // Initialize models
 const User = require('./models/user')(sequelize, DataTypes);
@@ -28,15 +32,24 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(telemetryMiddleware());
 
 // Metrics middleware
 app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
         const duration = Date.now() - start;
-        httpRequestDuration
-            .labels(req.method, req.path, res.statusCode)
+        const labels = {
+            method: req.method,
+            route: req.route ? req.route.path : req.path,
+            status_code: res.statusCode
+        };
+        
+        httpRequestDuration.labels(labels.method, labels.route, labels.status_code)
             .observe(duration / 1000);
+        
+        httpRequestTotal.labels(labels.method, labels.route, labels.status_code)
+            .inc();
     });
     next();
 });
@@ -80,13 +93,78 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/', swaggerRoutes);  
 
+// Add this after your other routes
+app.get('/test-trace', async (req, res) => {
+  const tracer = trace.getTracer('test-tracer');
+  
+  await tracer.startActiveSpan('test-operation', async (span) => {
+    try {
+      // Simulate some work
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Add some attributes to the span
+      span.setAttribute('test.attribute', 'test-value');
+      
+      res.json({ message: 'Test trace created' });
+    } catch (error) {
+      span.recordException(error);
+      span.setStatus({ code: opentelemetry.SpanStatusCode.ERROR });
+      res.status(500).json({ error: error.message });
+    } finally {
+      span.end();
+    }
+  });
+});
+
+// Add these test endpoints after your other routes
+app.get('/test-metrics', async (req, res) => {
+  // Simulate HTTP requests
+  const randomDuration = Math.random() * 1000;
+  await new Promise(resolve => setTimeout(resolve, randomDuration));
+  
+  // Increment custom metrics
+  http_request_duration_seconds.observe(randomDuration / 1000);
+  http_requests_total.inc({ method: 'GET', route: '/test-metrics' });
+  active_users.set(Math.floor(Math.random() * 100));
+  order_total.inc();
+  
+  res.json({ message: 'Test metrics generated' });
+});
+
+app.get('/test-cart', async (req, res) => {
+  // Simulate cart operations
+  const operations = ['add', 'remove', 'update'];
+  const operation = operations[Math.floor(Math.random() * operations.length)];
+  
+  cart_operations_total.inc({ operation });
+  
+  if (Math.random() > 0.7) {
+    checkout_total.inc();
+  }
+  
+  res.json({ message: 'Cart metrics generated' });
+});
+
+app.get('/test-error', async (req, res) => {
+  // Simulate errors
+  traces_error_total.inc();
+  res.status(500).json({ error: 'Test error' });
+});
+
 // Sync the models with the database
 sequelize.sync({ alter: true }).then(() => {
   const PORT = process.env.PORT || 5004;
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
   });
 }).catch(err => {
   console.error('Unable to sync the database:', err);
 });
+
+
+
+
+
+
+
 
