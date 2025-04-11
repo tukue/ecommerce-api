@@ -9,6 +9,7 @@ const checkoutRoutes = require('./routes/checkoutRoutes'); // Import the checkou
 const paymentRoutes = require('./routes/paymentRoutes'); // Import the payment routes
 const swaggerRoutes = require('./swagger');
 const { DataTypes } = require('sequelize');
+const { register, httpRequestDuration } = require('./config/metrics');
 
 // Initialize models
 const User = require('./models/user')(sequelize, DataTypes);
@@ -28,13 +29,33 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Metrics middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        httpRequestDuration
+            .labels(req.method, req.path, res.statusCode)
+            .observe(duration / 1000);
+    });
+    next();
+});
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+    res.setHeader('Content-Type', register.contentType);
+    const metrics = await register.metrics();
+    res.send(metrics);
+});
+
 // Serve static assets from the public folder
 app.use(express.static('public'));
 
-// Set EJS as the view engine
-app.set('view engine', 'ejs');
+app.get('/login', (req, res) => {
+  res.render('login', { message: 'Please log in' });
+});app.set('view engine', 'ejs');
 
-// Define the directory for EJS templates
+// Set views directory
 app.set('views', __dirname + '/views');
 
 // Middleware to attach models to request object
@@ -68,3 +89,4 @@ sequelize.sync({ alter: true }).then(() => {
 }).catch(err => {
   console.error('Unable to sync the database:', err);
 });
+
