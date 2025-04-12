@@ -11,9 +11,17 @@ const checkoutRoutes = require('./routes/checkoutRoutes'); // Import the checkou
 const paymentRoutes = require('./routes/paymentRoutes'); // Import the payment routes
 const swaggerRoutes = require('./swagger');
 const { DataTypes } = require('sequelize');
-const { register, httpRequestDuration, apiCallCounter } = require('./config/metrics');
+const { register, httpRequestDuration, apiCallCounter, tracesErrorTotal } = require('./config/metrics');
 const telemetryMiddleware = require('./middleware/telemetry');
 const { trace } = require('@opentelemetry/api');
+const { Counter } = require('prom-client');
+
+// Define the metric
+const httpRequestTotal = new Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+});
 
 // Initialize models
 const User = require('./models/user')(sequelize, DataTypes);
@@ -118,16 +126,11 @@ app.get('/test-trace', async (req, res) => {
 
 // Add these test endpoints after your other routes
 app.get('/test-metrics', async (req, res) => {
-  // Simulate HTTP requests
   const randomDuration = Math.random() * 1000;
   await new Promise(resolve => setTimeout(resolve, randomDuration));
-  
-  // Increment custom metrics
-  http_request_duration_seconds.observe(randomDuration / 1000);
-  http_requests_total.inc({ method: 'GET', route: '/test-metrics' });
-  active_users.set(Math.floor(Math.random() * 100));
-  order_total.inc();
-  
+
+  httpRequestDuration.labels('GET', '/test-metrics', 200).observe(randomDuration / 1000);
+
   res.json({ message: 'Test metrics generated' });
 });
 
