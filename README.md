@@ -27,7 +27,7 @@ https://github.com/tukue/ecommerce-api
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v20 or higher)
 - PostgreSQL
 
 ### Installation
