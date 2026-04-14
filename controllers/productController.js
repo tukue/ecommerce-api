@@ -1,256 +1,38 @@
-const Product = require('../models/product');
+const asyncHandler = require('../utils/asyncHandler');
+const ProductService = require('../services/productService');
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Product:
- *       type: object
- *       required:
- *         - name
- *         - price
- *         - stock
- *       properties:
- *         id:
- *           type: integer
- *           description: The auto-generated id of the product
- *         name:
- *           type: string
- *           description: The name of the product
- *         description:
- *           type: string
- *           description: The description of the product
- *         price:
- *           type: number
- *           format: float
- *           description: The price of the product
- *         stock:
- *           type: integer
- *           description: The stock quantity of the product
- *       example:
- *         id: 1
- *         name: Test Product
- *         description: This is a test product
- *         price: 100.0
- *         stock: 10
- */
-const productController = {
-  /**
-   * @swagger
-   * /api/products:
-   *   post:
-   *     summary: Create a new product
-   *     tags: [Products]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: '#/components/schemas/Product'
-   *     responses:
-   *       201:
-   *         description: Product created successfully
-   *       500:
-   *         description: Internal server error
-   */
-  async createProduct(req, res) {
-    try {
-      const product = await req.models.Product.create(req.body);
-      return res.status(201).json(product);
-    } catch (error) {
-      console.error('Error creating product:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  },
+function service(req) {
+  return new ProductService(req.models.Product);
+}
 
-  /**
-   * @swagger
-   * /api/products:
-   *   get:
-   *     summary: Get all products
-   *     tags: [Products]
-   *     responses:
-   *       200:
-   *         description: List of all products
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: '#/components/schemas/Product'
-   *       500:
-   *         description: Internal server error
-   */
-  async getAllProducts(req, res) {
-    try {
-      const products = await req.models.Product.findAll();
-      return res.status(200).json(products);
-    } catch (error) {
-      console.error('Error getting products:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  },
+module.exports = {
+  createProduct: asyncHandler(async (req, res) => {
+    const product = await service(req).createProduct(req.body);
+    res.status(201).json(product);
+  }),
 
-  /**
-   * @swagger
-   * /api/products/{id}:
-   *   get:
-   *     summary: Get product by ID
-   *     tags: [Products]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         schema:
-   *           type: integer
-   *         required: true
-   *         description: The product ID
-   *     responses:
-   *       200:
-   *         description: Product details
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Product'
-   *       404:
-   *         description: Product not found
-   *       500:
-   *         description: Internal server error
-   */
-  async getProductById(req, res) {
-    try {
-      const productId = parseInt(req.params.id, 10);
-      if (isNaN(productId)) {
-        return res.status(400).json({ error: 'Invalid product ID' });
-      }
+  getAllProducts: asyncHandler(async (req, res) => {
+    const products = await service(req).getAllProducts();
+    res.status(200).json(products);
+  }),
 
-      const product = await req.models.Product.findByPk(productId);
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      return res.status(200).json(product);
-    } catch (error) {
-      console.error('Error getting product:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  },
+  getProductById: asyncHandler(async (req, res) => {
+    const product = await service(req).getProductById(req.params.id);
+    res.status(200).json(product);
+  }),
 
-  /**
-   * @swagger
-   * /api/products/{id}:
-   *   put:
-   *     summary: Update product by ID
-   *     tags: [Products]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         schema:
-   *           type: integer
-   *         required: true
-   *         description: The product ID
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: '#/components/schemas/Product'
-   *     responses:
-   *       200:
-   *         description: Product updated successfully
-   *       404:
-   *         description: Product not found
-   *       500:
-   *         description: Internal server error
-   */
-  async updateProduct(req, res) {
-    try {
-      const product = await req.models.Product.findByPk(req.params.id);
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      await product.update(req.body);
-      return res.status(200).json(product);
-    } catch (error) {
-      console.error('Error updating product:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  },
+  updateProduct: asyncHandler(async (req, res) => {
+    const product = await service(req).updateProduct(req.params.id, req.body);
+    res.status(200).json(product);
+  }),
 
-  /**
-   * @swagger
-   * /api/products/{id}:
-   *   delete:
-   *     summary: Delete product by ID
-   *     tags: [Products]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         schema:
-   *           type: integer
-   *         required: true
-   *         description: The product ID
-   *     responses:
-   *       200:
-   *         description: Product deleted successfully
-   *       404:
-   *         description: Product not found
-   *       500:
-   *         description: Internal server error
-   */
-  async deleteProduct(req, res) {
-    try {
-      const product = await req.models.Product.findByPk(req.params.id);
-      if (!product) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      await product.destroy();
-      return res.status(200).json({ message: 'Product deleted successfully' });
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  },
+  deleteProduct: asyncHandler(async (req, res) => {
+    await service(req).deleteProduct(req.params.id);
+    res.status(200).json({ message: 'Product deleted successfully' });
+  }),
 
-  /**
-   * @swagger
-   * /api/products/search:
-   *   get:
-   *     summary: Search products by name
-   *     tags: [Products]
-   *     parameters:
-   *       - in: query
-   *         name: name
-   *         schema:
-   *           type: string
-   *         required: true
-   *         description: The product name to search for
-   *     responses:
-   *       200:
-   *         description: List of matching products
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: '#/components/schemas/Product'
-   *       500:
-   *         description: Internal server error
-   */
-  async searchProductsByName(req, res) {
-    try {
-      const { name } = req.query;
-      const products = await req.models.Product.findAll({
-        where: {
-          name: {
-            [Op.like]: `%${name}%`
-          }
-        }
-      });
-      return res.status(200).json(products);
-    } catch (error) {
-      console.error('Error searching products:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  }
+  searchProductsByName: asyncHandler(async (req, res) => {
+    const products = await service(req).searchProductsByName(req.query.name);
+    res.status(200).json(products);
+  }),
 };
-
-module.exports = productController;

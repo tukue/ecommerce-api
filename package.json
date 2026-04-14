@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
     "test": "jest",
+    "test:backend": "jest --config jest.backend.config.js",
+    "test:frontend": "jest --config jest.frontend.config.js",
     "generate-load": "node scripts/generate_load.js"
   },
   "keywords": [],

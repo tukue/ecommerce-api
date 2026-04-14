@@ -2,20 +2,23 @@ const opentelemetry = require('@opentelemetry/sdk-node');
 const { Resource } = require('@opentelemetry/resources');
 const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
-const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { PgInstrumentation } = require('@opentelemetry/instrumentation-pg');
+const env = require('./env');
+const logger = require('../utils/logger');
+
+const traceExporter = new OTLPTraceExporter({
+  url: `${env.otelEndpoint}/v1/traces`,
+});
 
 const sdk = new opentelemetry.NodeSDK({
   resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'ecommerce-api',
+    [SemanticResourceAttributes.SERVICE_NAME]: env.serviceName,
     [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
+    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: env.nodeEnv,
   }),
-  traceExporter: new OTLPTraceExporter({
-    url: 'http://jaeger:4318/v1/traces',
-  }),
-  spanProcessor: new SimpleSpanProcessor(new OTLPTraceExporter()),
+  traceExporter,
   instrumentations: [
     getNodeAutoInstrumentations(),
     new ExpressInstrumentation(),
@@ -23,11 +26,17 @@ const sdk = new opentelemetry.NodeSDK({
   ],
 });
 
-sdk.start();
+async function startTracing() {
+  await sdk.start();
+  logger.info('tracing_started', { endpoint: env.otelEndpoint });
+}
 
-process.on('SIGTERM', () => {
-  sdk.shutdown()
-    .then(() => console.log('Tracing terminated'))
-    .catch((error) => console.log('Error terminating tracing', error))
-    .finally(() => process.exit(0));
-});
+async function stopTracing() {
+  await sdk.shutdown();
+  logger.info('tracing_stopped');
+}
+
+module.exports = {
+  startTracing,
+  stopTracing,
+};

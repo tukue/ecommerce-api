@@ -1,71 +1,83 @@
-version: '3.8'
+version: '3.9'
 
 services:
   app:
-    build: 
-      context: .
-      dockerfile: Dockerfile
+    build: .
+    container_name: ecommerce-api
+    env_file:
+      - .env
     ports:
-      - "5004:5004"
-    volumes:
-      - .:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgres://your_db_user:your_db_password@database:5432/your_db_name
-      - JWT_SECRET=${JWT_SECRET}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
-      - OTEL_SERVICE_NAME=ecommerce-api
-      - PORT=5004  # Add explicit PORT environment variable
+      - '5004:5004'
     depends_on:
-      - database
-      - jaeger
+      postgres:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
     networks:
-      - app-network
-      - monitoring-network
-    restart: always
+      - backend
+      - observability
+    restart: unless-stopped
 
-  database:
-    image: postgres:14
-    restart: always
+  postgres:
+    image: postgres:15
+    container_name: ecommerce-postgres
     environment:
-      POSTGRES_USER: your_db_user
-      POSTGRES_PASSWORD: your_db_password
-      POSTGRES_DB: your_db_name
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecommerce
     ports:
-      - "5434:5434"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - app-network
+      - backend
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: ecommerce-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '9090:9090'
+    networks:
+      - observability
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: ecommerce-grafana
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - observability
 
   jaeger:
-    image: jaegertracing/all-in-one:1.47
-    container_name: jaeger
-    ports:
-      - "16686:16686"   # UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+    image: jaegertracing/all-in-one:1.58
+    container_name: ecommerce-jaeger
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
+      COLLECTOR_OTLP_ENABLED: 'true'
+    ports:
+      - '16686:16686'
+      - '4317:4317'
+      - '4318:4318'
     networks:
-      - monitoring-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:16686"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - observability
 
 networks:
-  app-network:
-    driver: bridge
-  monitoring-network:
-    driver: bridge
+  backend:
+  observability:
 
 volumes:
   postgres_data:
-
-
+  grafana_data:

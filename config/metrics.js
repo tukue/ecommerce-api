@@ -1,44 +1,40 @@
 const promClient = require('prom-client');
 
-// Create a Registry
 const register = new promClient.Registry();
-
-// Enable the collection of default metrics
 promClient.collectDefaultMetrics({ register });
 
-// Custom metrics
 const httpRequestDuration = new promClient.Histogram({
-    name: 'http_request_duration_seconds',
-    help: 'Duration of HTTP requests in seconds',
-    labelNames: ['method', 'route', 'status_code'],
-    buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10]
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.05, 0.1, 0.3, 0.5, 1, 2, 5],
+  registers: [register],
 });
 
-const orderTotal = new promClient.Counter({
-    name: 'order_total',
-    help: 'Total number of orders'
+const httpRequestTotal = new promClient.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [register],
 });
 
-const productViews = new promClient.Counter({
-    name: 'product_views_total',
-    help: 'Total number of product views',
-    labelNames: ['product_id']
+const inFlightRequests = new promClient.Gauge({
+  name: 'http_in_flight_requests',
+  help: 'Current in-flight HTTP requests',
+  registers: [register],
 });
 
-const activeUsers = new promClient.Gauge({
-    name: 'active_users',
-    help: 'Number of active users'
+const apiErrorTotal = new promClient.Counter({
+  name: 'api_errors_total',
+  help: 'Total number of API errors',
+  labelNames: ['route', 'method', 'status_code'],
+  registers: [register],
 });
-
-register.registerMetric(httpRequestDuration);
-register.registerMetric(orderTotal);
-register.registerMetric(productViews);
-register.registerMetric(activeUsers);
 
 module.exports = {
-    register,
-    httpRequestDuration,
-    orderTotal,
-    productViews,
-    activeUsers
+  register,
+  httpRequestDuration,
+  httpRequestTotal,
+  inFlightRequests,
+  apiErrorTotal,
 };

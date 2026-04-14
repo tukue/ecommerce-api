@@ -1,20 +1,16 @@
-# Use the official Node.js image with a specific version for stability
 FROM node:20-alpine
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm install --production
-
-# Copy the rest of the application code to the working directory
 COPY . .
 
-# Expose the application port
+ENV NODE_ENV=production
 EXPOSE 5004
 
-# Start the application
+RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
+USER nodeuser
+
 CMD ["node", "server.js"]

@@ -3,14 +3,11 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'ecommerce-api'
+  - job_name: ecommerce-api
+    metrics_path: /metrics
     static_configs:
-      - targets: ['app:5004']  # Scrape metrics from the app service
-    metrics_path: '/metrics'
-    scrape_interval: 5s
+      - targets: ['app:5004']
 
-  - job_name: 'prometheus'
+  - job_name: prometheus
     static_configs:
-      - targets: ['localhost:9090']
-
-
+      - targets: ['prometheus:9090']
