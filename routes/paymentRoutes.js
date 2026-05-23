@@ -1,79 +1,112 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
+const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleWare');
 
-/**
- * @swagger
- * tags:
- *   name: Payments
- *   description: Payment management
- */
+const checkPaymentOwnership = async (req, res, next) => {
+  try {
+    const payment = await req.models.Payment.findByPk(req.params.id);
+    
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    if (req.user.role !== 'admin' && payment.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    req.payment = payment;
+    next();
+  } catch (error) {
+    console.error('Payment ownership check error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
-/**
- * @swagger
- * /api/payments:
- *   post:
- *     summary: Create a new payment
- *     tags: [Payments]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Payment'
- *     responses:
- *       201:
- *         description: Payment created successfully
- *       500:
- *         description: Internal server error
- */
-router.post('/', paymentController.createPayment);
+const createPaymentWithAuth = async (req, res) => {
+  try {
+    const { orderId, stripePaymentId, amount, currency, status } = req.body;
 
-/**
- * @swagger
- * /api/payments:
- *   get:
- *     summary: Get all payments
- *     tags: [Payments]
- *     responses:
- *       200:
- *         description: List of all payments
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Payment'
- *       500:
- *         description: Internal server error
- */
-router.get('/', paymentController.getAllPayments);
+    if (!orderId || !amount || !currency) {
+      return res.status(400).json({ error: 'Missing required fields: orderId, amount, or currency' });
+    }
 
-/**
- * @swagger
- * /api/payments/{id}:
- *   get:
- *     summary: Get payment by ID
- *     tags: [Payments]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: The payment ID
- *     responses:
- *       200:
- *         description: Payment retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Payment'
- *       404:
- *         description: Payment not found
- *       500:
- *         description: Internal server error
- */
-router.get('/:id', paymentController.getPaymentById);
+    const order = await req.models.Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({ error: `Order with ID ${orderId} not found` });
+    }
+
+    if (req.user.role !== 'admin' && order.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied: This is not your order' });
+    }
+
+    const payment = await req.models.Payment.create({
+      userId: req.user.id,
+      orderId,
+      stripePaymentId,
+      amount,
+      currency,
+      status: status || 'pending',
+    });
+
+    return res.status(201).json(payment);
+  } catch (error) {
+    console.error('Error creating payment:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+const getAllPaymentsWithAuth = async (req, res) => {
+  try {
+    let whereClause = {};
+    
+    if (req.user.role !== 'admin') {
+      whereClause = { userId: req.user.id };
+    }
+
+    const payments = await req.models.Payment.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: req.models.Order,
+          as: 'order'
+        }
+      ]
+    });
+    return res.status(200).json(payments);
+  } catch (error) {
+    console.error('Error getting payments:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+const getPaymentByIdWithAuth = async (req, res) => {
+  try {
+    const payment = await req.models.Payment.findByPk(req.params.id, {
+      include: [
+        {
+          model: req.models.Order,
+          as: 'order'
+        }
+      ]
+    });
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    if (req.user.role !== 'admin' && payment.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    return res.status(200).json(payment);
+  } catch (error) {
+    console.error('Error getting payment:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+router.post('/', authMiddleware, createPaymentWithAuth);
+router.get('/', authMiddleware, getAllPaymentsWithAuth);
+router.get('/:id', authMiddleware, getPaymentByIdWithAuth);
 
 module.exports = router;
