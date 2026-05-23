@@ -6,7 +6,7 @@ const OrderModel = require('../models/order');
 const UserModel = require('../models/user');
 const ProductModel = require('../models/product');
 const PaymentModel = require('../models/payment');
-const orderRoutes = require('../routes/orderRoutes');
+const orderRoutes = require('../routes/OrderRoutes');
 
 process.env.JWT_SECRET = 'test-secret';
 process.env.JWT_EXPIRES_IN = '24h';

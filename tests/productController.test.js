@@ -189,8 +189,8 @@ describe('Product Controller', () => {
         .send(updateData);
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.product.name).toBe('Updated Product');
-      expect(res.body.product.price).toBe(200.0);
+      expect(res.body.name).toBe('Updated Product');
+      expect(res.body.price).toBe(200.0);
     });
 
     it('should return 401 without auth token', async () => {
