@@ -55,7 +55,7 @@ describe('Frontend Functions', () => {
     });
 
     test('adds item to cart', () => {
-        global.localStorage.getItem.mockImplementation(() => '[]');
+        global.localStorage._storage.cart = '[]';
 
         const mockEvent = {
             preventDefault: jest.fn(),
