@@ -1,26 +1,18 @@
-const { JSDOM } = require('jsdom');
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
 
 process.env.TEST = 'true';
 
 const setupDOM = () => {
-    const dom = new JSDOM(`
-        <!DOCTYPE html>
-        <html>
-        <body>
-            <div id="products-container"></div>
-            <div id="cart-count">0</div>
-            <input id="search-input" />
-            <div id="error-message"></div>
-            <div id="profile-container"></div>
-        </body>
-        </html>
-    `, {
-        url: 'http://localhost/'
-    });
+    document.body.innerHTML = `
+        <div id="products-container"></div>
+        <div id="cart-count">0</div>
+        <input id="search-input" />
+        <div id="error-message"></div>
+        <div id="profile-container"></div>
+    `;
 
-    global.window = dom.window;
-    global.document = dom.window.document;
-    global.navigator = dom.window.navigator;
     global.fetch = jest.fn();
     global.alert = jest.fn();
 
@@ -31,28 +23,19 @@ const setupDOM = () => {
         clear: jest.fn(() => { localStorageMock._storage = {}; }),
         removeItem: jest.fn((key) => { delete localStorageMock._storage[key]; })
     };
-    
-    global.localStorage = localStorageMock;
 
-    return dom;
+    global.localStorage = localStorageMock;
 };
 
 describe('Frontend Functions', () => {
     let scripts;
-    let dom;
 
     beforeEach(() => {
-        dom = setupDOM();
+        setupDOM();
         jest.resetModules();
         jest.clearAllMocks();
         global.localStorage._storage = {};
         scripts = require('./scripts');
-    });
-
-    afterEach(() => {
-        if (dom && dom.window) {
-            dom.window.close();
-        }
     });
 
     test('displays products correctly', () => {
@@ -64,7 +47,7 @@ describe('Frontend Functions', () => {
         }];
 
         scripts.displayProducts(testProducts);
-        
+
         const container = document.getElementById('products-container');
         expect(container).not.toBeNull();
         expect(container.innerHTML).toContain('Test Product');
@@ -73,7 +56,7 @@ describe('Frontend Functions', () => {
 
     test('adds item to cart', () => {
         global.localStorage.getItem.mockImplementation(() => '[]');
-        
+
         const mockEvent = {
             preventDefault: jest.fn(),
             target: {
@@ -89,7 +72,7 @@ describe('Frontend Functions', () => {
         };
 
         scripts.addToCart(mockEvent);
-        
+
         expect(global.localStorage.setItem).toHaveBeenCalledWith(
             'cart',
             expect.stringContaining('Test Product')
@@ -138,7 +121,7 @@ describe('Frontend Functions', () => {
         };
 
         scripts.displayProfile(testUser);
-        
+
         const container = document.getElementById('profile-container');
         expect(container).not.toBeNull();
         expect(container.innerHTML).toContain('testuser');
