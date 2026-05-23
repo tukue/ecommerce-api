@@ -16,15 +16,14 @@ const setupDOM = () => {
     global.fetch = jest.fn();
     global.alert = jest.fn();
 
-    const localStorageMock = {
-        _storage: {},
-        getItem: jest.fn((key) => localStorageMock._storage[key] || null),
-        setItem: jest.fn((key, value) => { localStorageMock._storage[key] = value; }),
-        clear: jest.fn(() => { localStorageMock._storage = {}; }),
-        removeItem: jest.fn((key) => { delete localStorageMock._storage[key]; })
+    const store = {};
+    global.localStorage = {
+        _store: store,
+        getItem: (key) => store[key] ?? null,
+        setItem: (key, value) => { store[key] = value; },
+        clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+        removeItem: (key) => { delete store[key]; }
     };
-
-    global.localStorage = localStorageMock;
 };
 
 describe('Frontend Functions', () => {
@@ -33,8 +32,6 @@ describe('Frontend Functions', () => {
     beforeEach(() => {
         setupDOM();
         jest.resetModules();
-        jest.clearAllMocks();
-        global.localStorage._storage = {};
         scripts = require('./scripts');
     });
 
@@ -55,7 +52,8 @@ describe('Frontend Functions', () => {
     });
 
     test('adds item to cart', () => {
-        global.localStorage._storage.cart = '[]';
+        global.localStorage._store.cart = '[]';
+        jest.spyOn(global.localStorage, 'setItem');
 
         const mockEvent = {
             preventDefault: jest.fn(),
