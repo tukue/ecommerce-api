@@ -41,11 +41,19 @@ module.exports = (sequelize, DataTypes) => {
     },
     resetToken: {
       type: DataTypes.STRING,
-      allowNull: true // Allow null because it will only be set when a password reset is requested
+      allowNull: true
     },
     resetTokenExpiry: {
       type: DataTypes.DATE,
-      allowNull: true // Allow null because it will only be set when a password reset is requested
+      allowNull: true
+    },
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'user',
+      validate: {
+        isIn: [['user', 'admin']]
+      }
     }
   }, {
     sequelize,

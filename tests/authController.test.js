@@ -60,7 +60,7 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'Password123'
+        password: 'Password123!'
       };
 
       const res = await request(app)
@@ -229,7 +229,7 @@ describe('Auth Controller', () => {
         .post('/api/auth/reset')
         .send({
           token: resetToken,
-          newPassword: 'newpassword123'
+          newPassword: 'Newpassword123!'
         });
 
       expect(res.statusCode).toBe(200);
@@ -240,10 +240,78 @@ describe('Auth Controller', () => {
         .post('/api/auth/login')
         .send({
           email: userData.email,
-          password: 'newpassword123'
+          password: 'Newpassword123!'
         });
 
       expect(loginRes.statusCode).toBe(200);
+    });
+
+    it('should reject weak passwords during reset', async () => {
+      const user = await User.create({
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'Password123'
+      });
+
+      const resetToken = 'validtoken123';
+      const hashedToken = await bcrypt.hash(resetToken, 12);
+      await user.update({
+        resetToken: hashedToken,
+        resetTokenExpiry: new Date(Date.now() + 3600000)
+      });
+
+      const res = await request(app)
+        .post('/api/auth/reset')
+        .send({
+          token: resetToken,
+          newPassword: 'weakpassword'
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toContain('special character');
+    });
+
+    it('should only reset the user whose token hash matches', async () => {
+      const user1 = await User.create({
+        username: 'user1',
+        email: 'user1@example.com',
+        password: 'Password123'
+      });
+      const user2 = await User.create({
+        username: 'user2',
+        email: 'user2@example.com',
+        password: 'Password123'
+      });
+
+      const resetToken1 = 'validtoken-user-1';
+      const resetToken2 = 'validtoken-user-2';
+      await user1.update({
+        resetToken: await bcrypt.hash(resetToken1, 12),
+        resetTokenExpiry: new Date(Date.now() + 3600000)
+      });
+      await user2.update({
+        resetToken: await bcrypt.hash(resetToken2, 12),
+        resetTokenExpiry: new Date(Date.now() + 3600000)
+      });
+
+      const res = await request(app)
+        .post('/api/auth/reset')
+        .send({
+          token: resetToken2,
+          newPassword: 'Newpassword123!'
+        });
+
+      expect(res.statusCode).toBe(200);
+
+      const user1Login = await request(app)
+        .post('/api/auth/login')
+        .send({ email: user1.email, password: 'Password123' });
+      const user2Login = await request(app)
+        .post('/api/auth/login')
+        .send({ email: user2.email, password: 'Newpassword123!' });
+
+      expect(user1Login.statusCode).toBe(200);
+      expect(user2Login.statusCode).toBe(200);
     });
   });
 });
