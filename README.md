@@ -20,102 +20,39 @@ This repository is intentionally designed as a **backend developer portfolio pro
 
 ```mermaid
 flowchart TB
-    subgraph Client["Clients"]
-        Browser["Browser App\n(EJS + Vanilla JS)"]
-        API_Client["API Consumer\n(cURL, Postman, mobile)"]
+    subgraph Frontend["Frontend (Browser)"]
+        EJS["EJS Templates\n(index, login, cart, profile, success)"]
+        JS["Vanilla JS\n(scripts.js, login.js, cart.js)"]
+        CSS["CSS\n(styles.css)"]
     end
 
-    subgraph Edge ["Edge Layer"]
-        LB["Reverse Proxy\n(terminates TLS)"]
+    subgraph Backend["Backend (Node.js / Express)"]
+        direction TB
+        MW["Middleware Pipeline\ncorrelationId → Logger → JWT Auth → Rate Limit → Telemetry → Error Handler"]
+        R["Routes → Controllers → Services → Repositories → ORM → PostgreSQL"]
     end
 
-    subgraph Middleware ["Middleware Stack"]
-        CTX["requestContext\n(correlation ID)"]
-        LOG["requestLogger\n(structured JSON)"]
-        AUTH["authMiddleWare\n(JWT verification)"]
-        RL["rateLimiter\n(express-rate-limit)"]
-        ERR["errorHandler\n(centralized)"]
-        TEL["telemetry\n(OpenTelemetry spans)"]
+    subgraph Observability["Observability Stack"]
+        Prom["Prometheus\n/metrics endpoint"]
+        Graf["Grafana\nDashboards"]
+        Jaeger["Jaeger\nDistributed Tracing"]
+        Logs["Structured JSON Logs\nwith correlationId"]
     end
 
-    subgraph Routes ["Routes"]
-        AR["authRoutes\n/login /register /reset"]
-        PR["productRoutes\n/products CRUD + search"]
-        OR["orderRoutes\n/orders CRUD"]
-        CHR["checkoutRoutes\n/checkout (Stripe)"]
-        PYR["paymentRoutes\n/payments"]
-        HR["healthRoutes\n/live /ready"]
-    end
+    Frontend -->|"HTTP requests\n(JWT in header)"| Backend
+    Backend -->|"HTML pages"| Frontend
+    Backend -->|"Stripe checkout session"| Stripe["Stripe API"]
 
-    subgraph Controllers ["Controllers"]
-        AC["authController"]
-        PC["productController"]
-        CHC["checkoutController"]
-    end
+    Backend -.->|"emit metrics"| Prom
+    Backend -.->|"export traces (OTLP)"| Jaeger
+    Backend -.->|"write logs"| Logs
+    Prom --> Graf
+    Jaeger --> Graf
 
-    subgraph Services ["Service Layer"]
-        PS["productService\n(business rules,\nvalidation)"]
-    end
-
-    subgraph Repos ["Repository Layer"]
-        PRR["productRepository\n(data access)"]
-    end
-
-    subgraph Models ["Sequelize ORM Models"]
-        UM["User"]
-        PM["Product"]
-        OM["Order"]
-        PYM["Payment"]
-    end
-
-    subgraph DB ["Database"]
-        PG[("PostgreSQL")]
-    end
-
-    subgraph Observability ["Observability Stack"]
-        PROM["Prometheus\n/metrics"]
-        GRAF["Grafana\n(dashboards)"]
-        JAEGER["Jaeger\n(traces via OTLP)"]
-        LOGS["Structured JSON Logs\nwith correlationId"]
-    end
-
-    subgraph External ["External Services"]
-        STRIPE["Stripe\n(payment processing)"]
-    end
-
-    Browser --> LB
-    API_Client --> LB
-    LB --> CTX --> LOG --> AUTH --> RL --> TEL
-    TEL --> Routes
-
-    AR --> AC
-    PR --> PC
-    OR --> AC
-    CHR --> CHC
-    PYR --> AC
-    HR --> ERR
-
-    PC --> PS --> PRR --> PM
-
-    PM --> PG
-    UM --> PG
-    OM --> PG
-    PYM --> PG
-
-    CHC --> STRIPE
-
-    Routes -.-> PROM
-    Routes -.-> LOGS
-    Routes -.-> JAEGER
-    PROM --> GRAF
-    JAEGER --> GRAF
-
-    style Observability fill:#1a1a2e,color:#eee,stroke:#4a4a8a
-    style External fill:#2d1b1b,color:#eee,stroke:#8a3a3a
-    style DB fill:#1b2d1b,color:#eee,stroke:#3a8a3a
+    style Frontend fill:#1a1a2e,color:#fff,stroke:#4a4a8a
+    style Backend fill:#1b2d1b,color:#fff,stroke:#3a8a3a
+    style Observability fill:#2d1b1b,color:#fff,stroke:#8a3a3a
 ```
-
-**Legend:** Solid lines = request flow. Dashed lines = observability data flow. Dotted layers = not yet extracted (Orders/Payments/Auth still use inline logic).
 
 Detailed architecture notes: `docs/ARCHITECTURE.md`. Pending improvements tracked in `docs/PENDING_IMPROVEMENTS.md`.
 
