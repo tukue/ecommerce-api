@@ -1,7 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/authMiddleWare');
+const { Op } = require('sequelize');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+const parseQuantity = (quantity) => {
+  const parsedQuantity = Number(quantity);
+  return Number.isInteger(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : null;
+};
 
 const checkoutController = {
   createCheckoutSession: async (req, res) => {
@@ -12,21 +18,38 @@ const checkoutController = {
         return res.status(400).json({ error: 'Cart is required and must be a non-empty array' });
       }
 
+      const productIds = cart.map(item => item.productId || item.id);
+      if (productIds.some(productId => !productId)) {
+        return res.status(400).json({ error: 'Each cart item must include a productId' });
+      }
+
+      const products = await req.models.Product.findAll({
+        where: { id: { [Op.in]: productIds } }
+      });
+      const productMap = new Map(products.map(product => [String(product.id), product]));
+
       const lineItems = cart.map(item => {
-        if (!item.name || item.price === undefined || !item.quantity) {
-          throw new Error('Each cart item must have name, price, and quantity');
+        const productId = String(item.productId || item.id);
+        const product = productMap.get(productId);
+        if (!product) {
+          throw new Error(`Product ${productId} not found`);
         }
-        
-        const unitAmount = Math.round(item.price * 100);
+
+        const quantity = parseQuantity(item.quantity);
+        if (!quantity) {
+          throw new Error('Each cart item must include a positive integer quantity');
+        }
+
+        const unitAmount = Math.round(Number(product.price) * 100);
         return {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: item.name,
+              name: product.name,
             },
             unit_amount: unitAmount,
           },
-          quantity: item.quantity,
+          quantity,
         };
       });
 

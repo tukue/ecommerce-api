@@ -17,13 +17,15 @@ const setupDOM = () => {
     global.alert = jest.fn();
 
     const store = {};
-    global.localStorage = {
-        _store: store,
-        getItem: (key) => store[key] ?? null,
-        setItem: (key, value) => { store[key] = value; },
-        clear: () => { Object.keys(store).forEach(k => delete store[k]); },
-        removeItem: (key) => { delete store[key]; }
-    };
+    Object.defineProperty(global, 'localStorage', {
+        value: {
+            getItem: (key) => store[key] ?? null,
+            setItem: (key, value) => { store[key] = value; },
+            clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+            removeItem: (key) => { delete store[key]; }
+        },
+        configurable: true
+    });
 };
 
 describe('Frontend Functions', () => {
@@ -52,7 +54,7 @@ describe('Frontend Functions', () => {
     });
 
     test('adds item to cart', () => {
-        global.localStorage._store.cart = '[]';
+        global.localStorage.setItem('cart', '[]');
         jest.spyOn(global.localStorage, 'setItem');
 
         const mockEvent = {

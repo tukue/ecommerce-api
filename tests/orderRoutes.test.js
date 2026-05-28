@@ -122,7 +122,7 @@ describe('Order Routes', () => {
       const orderData = {
         productId: testProduct.id,
         quantity: 2,
-        total: 100.0
+        total: 1.0
       };
 
       const res = await request(app)
@@ -136,6 +136,20 @@ describe('Order Routes', () => {
       expect(res.body.quantity).toBe(2);
       expect(res.body.total).toBe(100.0);
       expect(res.body.status).toBe('pending');
+    });
+
+    it('should ignore client-supplied totals and calculate total from product price', async () => {
+      const res = await request(app)
+        .post('/api/orders')
+        .set('Authorization', `Bearer ${userToken1}`)
+        .send({
+          productId: testProduct.id,
+          quantity: 3,
+          total: 0.01
+        });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.total).toBe(150.0);
     });
 
     it('should return 400 with missing fields', async () => {
@@ -271,11 +285,11 @@ describe('Order Routes', () => {
       });
     });
 
-    it('user can update their own order quantity and total', async () => {
+    it('user can update their own order quantity and total is recalculated', async () => {
       const res = await request(app)
         .put(`/api/orders/${user1Order.id}`)
         .set('Authorization', `Bearer ${userToken1}`)
-        .send({ quantity: 5, total: 250.0 });
+        .send({ quantity: 5, total: 1.0 });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.order.quantity).toBe(5);

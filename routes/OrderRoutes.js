@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleWare');
-const { Op } = require('sequelize');
+
+const parseQuantity = (quantity) => {
+  const parsedQuantity = Number(quantity);
+  return Number.isInteger(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : null;
+};
+const calculateOrderTotal = (product, quantity) => Number(product.price) * quantity;
 
 const checkOrderOwnership = async (req, res, next) => {
   try {
@@ -26,12 +31,17 @@ const checkOrderOwnership = async (req, res, next) => {
 const orderController = {
   createOrder: async (req, res) => {
     try {
-      const { productId, quantity, total } = req.body;
+      const { productId, quantity } = req.body;
 
-      if (!productId || !quantity || total === undefined) {
+      if (!productId || !quantity) {
         return res.status(400).json({
-          error: 'Missing required fields: productId, quantity, or total'
+          error: 'Missing required fields: productId or quantity'
         });
+      }
+
+      const parsedQuantity = parseQuantity(quantity);
+      if (!parsedQuantity) {
+        return res.status(400).json({ error: 'Quantity must be a positive integer' });
       }
 
       const product = await req.models.Product.findByPk(productId);
@@ -39,11 +49,13 @@ const orderController = {
         return res.status(404).json({ error: 'Product not found' });
       }
 
+      const calculatedTotal = calculateOrderTotal(product, parsedQuantity);
+
       const order = await req.models.Order.create({
         userId: req.user.id,
         productId,
-        quantity,
-        total,
+        quantity: parsedQuantity,
+        total: calculatedTotal,
         status: 'pending'
       });
 
@@ -109,11 +121,27 @@ const orderController = {
 
   updateOrder: async (req, res) => {
     try {
-      const { quantity, total, status } = req.body;
+      const { quantity, status } = req.body;
       const updateData = {};
       
-      if (quantity !== undefined) updateData.quantity = quantity;
-      if (total !== undefined) updateData.total = total;
+      if (quantity !== undefined) {
+        const parsedQuantity = parseQuantity(quantity);
+        if (!parsedQuantity) {
+          return res.status(400).json({ error: 'Quantity must be a positive integer' });
+        }
+
+        const order = await req.models.Order.findByPk(req.params.id, {
+          include: [{ model: req.models.Product, as: 'product' }]
+        });
+
+        if (!order) {
+          return res.status(404).json({ message: 'Order not found' });
+        }
+
+        updateData.quantity = parsedQuantity;
+        updateData.total = calculateOrderTotal(order.product, parsedQuantity);
+      }
+
       if (status !== undefined && req.user.role === 'admin') {
         updateData.status = status;
       }

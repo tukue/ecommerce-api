@@ -9,7 +9,7 @@ const requestLogger = require('./middleware/requestLogger');
 const telemetryMiddleware = require('./middleware/telemetry');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
-const orderRoutes = require('./routes/orderRoutes');
+const orderRoutes = require('./routes/OrderRoutes');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
 const checkoutRoutes = require('./routes/checkoutRoutes');

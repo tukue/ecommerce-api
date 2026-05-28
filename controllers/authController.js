@@ -3,6 +3,9 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 
+const PASSWORD_REQUIREMENTS_MESSAGE = 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.';
+const isStrongPassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password);
+
 const authController = {
   async register(req, res) {
     try {
@@ -22,9 +25,9 @@ const authController = {
       }
 
       // Validate password strength
-      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(password)) {
+      if (!isStrongPassword(password)) {
         return res.status(400).json({
-          message: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.'
+          message: PASSWORD_REQUIREMENTS_MESSAGE
         });
       }
 
@@ -158,23 +161,34 @@ const authController = {
     try {
       const { token, newPassword } = req.body;
 
-      // Find user with valid reset token
-      const user = await req.models.User.findOne({
+      if (!isStrongPassword(newPassword)) {
+        return res.status(400).json({
+          message: PASSWORD_REQUIREMENTS_MESSAGE
+        });
+      }
+
+      const users = await req.models.User.findAll({
         where: {
           resetTokenExpiry: {
             [Op.gt]: new Date()
-          }
+          },
+          resetToken: {
+            [Op.ne]: null
+          },
         }
       });
 
-      if (!user) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
+      let user = null;
+      for (const candidate of users) {
+        const isValidToken = await bcrypt.compare(token, candidate.resetToken);
+        if (isValidToken) {
+          user = candidate;
+          break;
+        }
       }
 
-      // Verify token
-      const isValidToken = await bcrypt.compare(token, user.resetToken);
-      if (!isValidToken) {
-        return res.status(400).json({ message: 'Invalid reset token' });
+      if (!user) {
+        return res.status(400).json({ message: 'Invalid or expired reset token' });
       }
 
       // Update password
