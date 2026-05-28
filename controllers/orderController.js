@@ -8,7 +8,7 @@ const orderController = {
       // Validate required fields
       if (!userId || !productId || !quantity || !totalPrice) {
         return res.status(400).json({
-          error: 'Missing required fields: userId, productId, quantity, or totalPrice'
+          error: 'Missing required fields: userId, productId, quantity, or totalPrice',
         });
       }
 
@@ -29,7 +29,7 @@ const orderController = {
         productId,
         quantity,
         totalPrice,
-        status: 'pending'
+        status: 'pending',
       });
 
       res.status(201).json(order);
@@ -67,7 +67,7 @@ const orderController = {
       }
 
       await req.models.Order.update(req.body, {
-        where: { id: req.params.id }
+        where: { id: req.params.id },
       });
 
       const updatedOrder = await req.models.Order.findByPk(req.params.id);
@@ -80,7 +80,7 @@ const orderController = {
   deleteOrder: async (req, res) => {
     try {
       const result = await req.models.Order.destroy({
-        where: { id: req.params.id }
+        where: { id: req.params.id },
       });
 
       if (result === 0) {
@@ -91,7 +91,7 @@ const orderController = {
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 };
 
 module.exports = orderController;

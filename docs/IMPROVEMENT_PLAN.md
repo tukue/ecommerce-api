@@ -49,14 +49,14 @@ This document captures the next portfolio-focused improvements for the backend A
 
 ## Suggested priority order
 
-| Priority | Area | Why it matters |
-| --- | --- | --- |
-| High | Migrations | Prevents schema drift and production surprises |
-| High | Dashboards and alerts | Demonstrates operational maturity |
-| High | Integration tests | Increases trust in core flows |
-| Medium | Idempotency and retries | Improves payment and checkout reliability |
-| Medium | Security hardening | Strengthens production credibility |
-| Low | Runbooks and examples | Improves onboarding and maintainability |
+| Priority | Area                    | Why it matters                                 |
+| -------- | ----------------------- | ---------------------------------------------- |
+| High     | Migrations              | Prevents schema drift and production surprises |
+| High     | Dashboards and alerts   | Demonstrates operational maturity              |
+| High     | Integration tests       | Increases trust in core flows                  |
+| Medium   | Idempotency and retries | Improves payment and checkout reliability      |
+| Medium   | Security hardening      | Strengthens production credibility             |
+| Low      | Runbooks and examples   | Improves onboarding and maintainability        |
 
 ## Deliverables
 
@@ -64,4 +64,3 @@ This document captures the next portfolio-focused improvements for the backend A
 - Updated README references
 - Dashboard and alert documentation
 - Migration strategy documentation
-

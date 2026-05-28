@@ -37,7 +37,11 @@ describe('Payment Model', () => {
   });
 
   it('should create a payment and associate it with a user and order', async () => {
-    const user = await User.create({ username: 'testuser', email: 'test@example.com', password: 'password123' });
+    const user = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123',
+    });
     const order = await Order.create({
       userId: user.id,
       productId: 1,
@@ -70,12 +74,16 @@ describe('Payment Model', () => {
         amount: 200,
         currency: 'usd',
         status: 'succeeded',
-      })
+      }),
     ).rejects.toThrow();
   });
 
   it('should fetch a payment with associated user and order', async () => {
-    const user = await User.create({ username: 'testuser', email: 'test@example.com', password: 'password123' });
+    const user = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'password123',
+    });
     const order = await Order.create({
       userId: user.id,
       productId: 1,

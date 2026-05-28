@@ -9,35 +9,38 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
 
-  Order.init({
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+  Order.init(
+    {
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      productId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      total: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0.0,
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'pending',
+      },
     },
-    productId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
+    {
+      sequelize,
+      modelName: 'Order',
+      tableName: 'orders',
+      timestamps: true,
     },
-    quantity: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    total: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      defaultValue: 0.0,
-    },
-    status: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 'pending',
-    },
-  }, {
-    sequelize,
-    modelName: 'Order',
-    tableName: 'orders',
-    timestamps: true,
-  });
+  );
 
   return Order;
 };

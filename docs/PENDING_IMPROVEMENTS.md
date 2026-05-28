@@ -33,9 +33,9 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 
 ---
 
-## Tooling & Code Quality (Score: 5/10)
+## Tooling & Code Quality (Score: 7/10)
 
-- [ ] **ESLint + Prettier** — add linting and formatting with CI enforcement
+- [x] **ESLint + Prettier** — add linting and formatting with CI enforcement
 - [ ] **Fix `.gitignore`** — stop ignoring `README.md` and `db_scripts.md`
 - [ ] **Remove duplicate route** — move `/request-reset` POST from `swagger.js` into `routes/authRoutes.js`
 
@@ -72,9 +72,8 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 ## How to Track Progress
 
 Re-score after each phase:
+
 - **Phase 1 (Security fixes)** → goal: 8.5/10
 - **Phase 2 (Architecture consistency)** → goal: 9/10
 - **Phase 3 (Production readiness)** → goal: 9.5/10
 - **Phase 4 (Tooling + tests + polish)** → goal: 10/10
-
-

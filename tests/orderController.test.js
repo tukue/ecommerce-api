@@ -11,15 +11,15 @@ const mockReq = {
       findAll: jest.fn(),
       findByPk: jest.fn(),
       destroy: jest.fn(),
-      update: jest.fn()
+      update: jest.fn(),
     },
     User: {
-      findByPk: jest.fn()
+      findByPk: jest.fn(),
     },
     Product: {
-      findByPk: jest.fn()
-    }
-  }
+      findByPk: jest.fn(),
+    },
+  },
 };
 
 describe('Order Controller', () => {
@@ -28,32 +28,32 @@ describe('Order Controller', () => {
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
-    
+
     // Setup request and response
     req = {
       body: {
         userId: 1,
         productId: 1,
         quantity: 2,
-        totalPrice: 200
+        totalPrice: 200,
       },
       params: { id: '1' },
-      models: mockReq.models
+      models: mockReq.models,
     };
-    
+
     res = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn(),
     };
   });
 
   describe('createOrder', () => {
     it('should create order successfully', async () => {
       // Setup
-      const mockOrder = { 
-        id: 1, 
-        ...req.body, 
-        status: 'pending' 
+      const mockOrder = {
+        id: 1,
+        ...req.body,
+        status: 'pending',
       };
       req.models.Order.create.mockResolvedValue(mockOrder);
       req.models.User.findByPk.mockResolvedValue({ id: 1 });
@@ -69,8 +69,8 @@ describe('Order Controller', () => {
           productId: 1,
           quantity: 2,
           totalPrice: 200,
-          status: 'pending'
-        })
+          status: 'pending',
+        }),
       );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining(mockOrder));
@@ -87,8 +87,8 @@ describe('Order Controller', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: expect.any(String)
-        })
+          error: expect.any(String),
+        }),
       );
     });
   });
@@ -98,7 +98,7 @@ describe('Order Controller', () => {
       // Setup
       const mockOrders = [
         { id: 1, userId: 1, productId: 1 },
-        { id: 2, userId: 2, productId: 2 }
+        { id: 2, userId: 2, productId: 2 },
       ];
       req.models.Order.findAll.mockResolvedValue(mockOrders);
 
@@ -136,9 +136,11 @@ describe('Order Controller', () => {
 
       // Assert
       expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Order not found'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Order not found',
+        }),
+      );
     });
   });
 
@@ -149,7 +151,7 @@ describe('Order Controller', () => {
         id: 1,
         quantity: 3,
         totalPrice: 300,
-        status: 'pending'
+        status: 'pending',
       };
       req.models.Order.findByPk.mockResolvedValue(mockOrder);
       req.models.Order.update.mockResolvedValue([1]);
@@ -171,9 +173,11 @@ describe('Order Controller', () => {
 
       // Assert
       expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Order not found'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Order not found',
+        }),
+      );
     });
   });
 
@@ -187,7 +191,7 @@ describe('Order Controller', () => {
 
       // Assert
       expect(req.models.Order.destroy).toHaveBeenCalledWith({
-        where: { id: '1' }
+        where: { id: '1' },
       });
       expect(res.status).toHaveBeenCalledWith(200);
     });

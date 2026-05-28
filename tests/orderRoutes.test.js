@@ -14,7 +14,7 @@ process.env.JWT_EXPIRES_IN = '24h';
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: ':memory:',
-  logging: false
+  logging: false,
 });
 
 const Order = OrderModel(sequelize, DataTypes);
@@ -42,11 +42,7 @@ app.use((req, res, next) => {
 app.use('/api', orderRoutes);
 
 const generateToken = (userId) => {
-  return jwt.sign(
-    { userId },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }
-  );
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 };
 
 describe('Order Routes', () => {
@@ -72,7 +68,7 @@ describe('Order Routes', () => {
       username: 'admin',
       email: 'admin@example.com',
       password: 'Password123',
-      role: 'admin'
+      role: 'admin',
     });
     adminToken = generateToken(adminUser.id);
 
@@ -80,7 +76,7 @@ describe('Order Routes', () => {
       username: 'user1',
       email: 'user1@example.com',
       password: 'Password123',
-      role: 'user'
+      role: 'user',
     });
     userToken1 = generateToken(regularUser1.id);
 
@@ -88,7 +84,7 @@ describe('Order Routes', () => {
       username: 'user2',
       email: 'user2@example.com',
       password: 'Password123',
-      role: 'user'
+      role: 'user',
     });
     userToken2 = generateToken(regularUser2.id);
 
@@ -96,14 +92,13 @@ describe('Order Routes', () => {
       name: 'Test Product',
       description: 'A test product',
       price: 50.0,
-      stock: 100
+      stock: 100,
     });
   });
 
   describe('Authentication', () => {
     it('should return 401 without auth token', async () => {
-      const res = await request(app)
-        .get('/api/orders');
+      const res = await request(app).get('/api/orders');
 
       expect(res.statusCode).toBe(401);
     });
@@ -122,7 +117,7 @@ describe('Order Routes', () => {
       const orderData = {
         productId: testProduct.id,
         quantity: 2,
-        total: 1.0
+        total: 1.0,
       };
 
       const res = await request(app)
@@ -145,7 +140,7 @@ describe('Order Routes', () => {
         .send({
           productId: testProduct.id,
           quantity: 3,
-          total: 0.01
+          total: 0.01,
         });
 
       expect(res.statusCode).toBe(201);
@@ -165,7 +160,7 @@ describe('Order Routes', () => {
       const orderData = {
         productId: 9999,
         quantity: 2,
-        total: 100.0
+        total: 100.0,
       };
 
       const res = await request(app)
@@ -184,14 +179,14 @@ describe('Order Routes', () => {
         productId: testProduct.id,
         quantity: 1,
         total: 50.0,
-        status: 'pending'
+        status: 'pending',
       });
       await Order.create({
         userId: regularUser2.id,
         productId: testProduct.id,
         quantity: 3,
         total: 150.0,
-        status: 'completed'
+        status: 'completed',
       });
     });
 
@@ -226,14 +221,14 @@ describe('Order Routes', () => {
         productId: testProduct.id,
         quantity: 1,
         total: 50.0,
-        status: 'pending'
+        status: 'pending',
       });
       user2Order = await Order.create({
         userId: regularUser2.id,
         productId: testProduct.id,
         quantity: 3,
         total: 150.0,
-        status: 'completed'
+        status: 'completed',
       });
     });
 
@@ -246,7 +241,7 @@ describe('Order Routes', () => {
       expect(res.body.id).toBe(user1Order.id);
     });
 
-    it('user cannot access another user\'s order', async () => {
+    it("user cannot access another user's order", async () => {
       const res = await request(app)
         .get(`/api/orders/${user2Order.id}`)
         .set('Authorization', `Bearer ${userToken1}`);
@@ -281,7 +276,7 @@ describe('Order Routes', () => {
         productId: testProduct.id,
         quantity: 1,
         total: 50.0,
-        status: 'pending'
+        status: 'pending',
       });
     });
 
@@ -316,7 +311,7 @@ describe('Order Routes', () => {
       expect(res.body.order.status).toBe('shipped');
     });
 
-    it('user cannot update another user\'s order', async () => {
+    it("user cannot update another user's order", async () => {
       const res = await request(app)
         .put(`/api/orders/${user1Order.id}`)
         .set('Authorization', `Bearer ${userToken2}`)
@@ -335,7 +330,7 @@ describe('Order Routes', () => {
         productId: testProduct.id,
         quantity: 1,
         total: 50.0,
-        status: 'pending'
+        status: 'pending',
       });
     });
 
@@ -347,7 +342,7 @@ describe('Order Routes', () => {
       expect(res.statusCode).toBe(200);
     });
 
-    it('user cannot delete another user\'s order', async () => {
+    it("user cannot delete another user's order", async () => {
       const res = await request(app)
         .delete(`/api/orders/${user1Order.id}`)
         .set('Authorization', `Bearer ${userToken2}`);

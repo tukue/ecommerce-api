@@ -4,7 +4,7 @@ const UserModel = require('../models/user');
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: ':memory:',
-  logging: false
+  logging: false,
 });
 
 const User = UserModel(sequelize, DataTypes);
@@ -26,11 +26,11 @@ describe('User Model', () => {
     const validUser = {
       username: 'testuser',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     };
 
     const user = await User.create(validUser);
-    
+
     expect(user).toBeDefined();
     expect(user.username).toBe(validUser.username);
     expect(user.email).toBe(validUser.email);
@@ -40,7 +40,7 @@ describe('User Model', () => {
 
   it('should not create a user without required fields', async () => {
     const invalidUser = {
-      username: 'testuser'
+      username: 'testuser',
     };
 
     await expect(User.create(invalidUser)).rejects.toThrow();
@@ -50,7 +50,7 @@ describe('User Model', () => {
     const invalidUser = {
       username: 'testuser',
       email: 'invalid-email',
-      password: 'password123'
+      password: 'password123',
     };
 
     await expect(User.create(invalidUser)).rejects.toThrow();
@@ -60,7 +60,7 @@ describe('User Model', () => {
     const invalidUser = {
       username: 'testuser',
       email: 'test@example.com',
-      password: '12345'
+      password: '12345',
     };
 
     await expect(User.create(invalidUser)).rejects.toThrow();

@@ -1,34 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const paymentController = require('../controllers/paymentController');
-const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleWare');
-
-const checkPaymentOwnership = async (req, res, next) => {
-  try {
-    const payment = await req.models.Payment.findByPk(req.params.id);
-    
-    if (!payment) {
-      return res.status(404).json({ error: 'Payment not found' });
-    }
-    
-    if (req.user.role !== 'admin' && payment.userId !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    req.payment = payment;
-    next();
-  } catch (error) {
-    console.error('Payment ownership check error:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
+const { authMiddleware } = require('../middleware/authMiddleWare');
 
 const createPaymentWithAuth = async (req, res) => {
   try {
     const { orderId, stripePaymentId, amount, currency, status } = req.body;
 
     if (!orderId || !amount || !currency) {
-      return res.status(400).json({ error: 'Missing required fields: orderId, amount, or currency' });
+      return res
+        .status(400)
+        .json({ error: 'Missing required fields: orderId, amount, or currency' });
     }
 
     const order = await req.models.Order.findByPk(orderId);
@@ -59,7 +40,7 @@ const createPaymentWithAuth = async (req, res) => {
 const getAllPaymentsWithAuth = async (req, res) => {
   try {
     let whereClause = {};
-    
+
     if (req.user.role !== 'admin') {
       whereClause = { userId: req.user.id };
     }
@@ -69,9 +50,9 @@ const getAllPaymentsWithAuth = async (req, res) => {
       include: [
         {
           model: req.models.Order,
-          as: 'order'
-        }
-      ]
+          as: 'order',
+        },
+      ],
     });
     return res.status(200).json(payments);
   } catch (error) {
@@ -86,18 +67,18 @@ const getPaymentByIdWithAuth = async (req, res) => {
       include: [
         {
           model: req.models.Order,
-          as: 'order'
-        }
-      ]
+          as: 'order',
+        },
+      ],
     });
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
-    
+
     if (req.user.role !== 'admin' && payment.userId !== req.user.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    
+
     return res.status(200).json(payment);
   } catch (error) {
     console.error('Error getting payment:', error);

@@ -2,7 +2,6 @@ const request = require('supertest');
 const express = require('express');
 const { Sequelize, DataTypes } = require('sequelize');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const ProductModel = require('../models/product');
 const UserModel = require('../models/user');
 const OrderModel = require('../models/order');
@@ -14,7 +13,7 @@ process.env.JWT_EXPIRES_IN = '24h';
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: ':memory:',
-  logging: false
+  logging: false,
 });
 
 const Product = ProductModel(sequelize, DataTypes);
@@ -37,11 +36,7 @@ app.use((req, res, next) => {
 app.use('/api/products', productRoutes);
 
 const generateToken = (userId) => {
-  return jwt.sign(
-    { userId },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN }
-  );
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 };
 
 const createTestUser = async (role = 'user') => {
@@ -49,7 +44,7 @@ const createTestUser = async (role = 'user') => {
     username: `testuser_${Date.now()}`,
     email: `test_${Date.now()}@example.com`,
     password: 'Password123',
-    role
+    role,
   });
   return { user, token: generateToken(user.id) };
 };
@@ -69,7 +64,7 @@ describe('Product Controller', () => {
   beforeEach(async () => {
     await Product.destroy({ where: {}, truncate: true });
     await User.destroy({ where: {}, truncate: true });
-    
+
     const adminData = await createTestUser('admin');
     const userData = await createTestUser('user');
     adminToken = adminData.token;
@@ -82,11 +77,10 @@ describe('Product Controller', () => {
         name: 'Test Product',
         description: 'This is a test product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       });
 
-      const res = await request(app)
-        .get('/api/products');
+      const res = await request(app).get('/api/products');
 
       expect(res.statusCode).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
@@ -97,13 +91,12 @@ describe('Product Controller', () => {
     it('should get a single product by id without auth', async () => {
       const product = await Product.create({
         name: 'Test Product',
-        description: 'This is a test product', 
+        description: 'This is a test product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       });
 
-      const res = await request(app)
-        .get(`/api/products/${product.id}`);
+      const res = await request(app).get(`/api/products/${product.id}`);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.name).toBe('Test Product');
@@ -111,8 +104,7 @@ describe('Product Controller', () => {
     });
 
     it('should return 404 when getting non-existent product', async () => {
-      const res = await request(app)
-        .get('/api/products/999');
+      const res = await request(app).get('/api/products/999');
 
       expect(res.statusCode).toBe(404);
     });
@@ -124,7 +116,7 @@ describe('Product Controller', () => {
         name: 'Test Product',
         description: 'This is a test product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       };
 
       const res = await request(app)
@@ -143,12 +135,10 @@ describe('Product Controller', () => {
       const productData = {
         name: 'Test Product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       };
 
-      const res = await request(app)
-        .post('/api/products')
-        .send(productData);
+      const res = await request(app).post('/api/products').send(productData);
 
       expect(res.statusCode).toBe(401);
     });
@@ -157,7 +147,7 @@ describe('Product Controller', () => {
       const productData = {
         name: 'Test Product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       };
 
       const res = await request(app)
@@ -174,13 +164,13 @@ describe('Product Controller', () => {
       const product = await Product.create({
         name: 'Test Product',
         description: 'This is a test product',
-        price: 100.0, 
-        stock: 10
+        price: 100.0,
+        stock: 10,
       });
 
       const updateData = {
         name: 'Updated Product',
-        price: 200.0
+        price: 200.0,
       };
 
       const res = await request(app)
@@ -197,12 +187,10 @@ describe('Product Controller', () => {
       const product = await Product.create({
         name: 'Test Product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       });
 
-      const res = await request(app)
-        .put(`/api/products/${product.id}`)
-        .send({ name: 'Updated' });
+      const res = await request(app).put(`/api/products/${product.id}`).send({ name: 'Updated' });
 
       expect(res.statusCode).toBe(401);
     });
@@ -213,11 +201,10 @@ describe('Product Controller', () => {
       const product = await Product.create({
         name: 'Test Product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       });
 
-      const res = await request(app)
-        .delete(`/api/products/${product.id}`);
+      const res = await request(app).delete(`/api/products/${product.id}`);
 
       expect(res.statusCode).toBe(401);
     });
@@ -226,7 +213,7 @@ describe('Product Controller', () => {
       const product = await Product.create({
         name: 'Test Product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       });
 
       const res = await request(app)

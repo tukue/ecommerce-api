@@ -40,15 +40,15 @@ async function displayCartItems() {
   totalPriceContainer.textContent = `Total: $${totalCartPrice.toFixed(2)}`;
 
   // Add event listeners to "Remove", "+" and "-" buttons
-  document.querySelectorAll('.remove-from-cart').forEach(button => {
+  document.querySelectorAll('.remove-from-cart').forEach((button) => {
     button.addEventListener('click', removeFromCart);
   });
 
-  document.querySelectorAll('.increase-quantity').forEach(button => {
+  document.querySelectorAll('.increase-quantity').forEach((button) => {
     button.addEventListener('click', increaseQuantity);
   });
 
-  document.querySelectorAll('.decrease-quantity').forEach(button => {
+  document.querySelectorAll('.decrease-quantity').forEach((button) => {
     button.addEventListener('click', decreaseQuantity);
   });
 }
@@ -56,7 +56,7 @@ async function displayCartItems() {
 function removeFromCart(event) {
   const productId = event.target.getAttribute('data-id');
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  cart = cart.filter(item => item.id !== productId);
+  cart = cart.filter((item) => item.id !== productId);
   localStorage.setItem('cart', JSON.stringify(cart));
   displayCartItems();
 }
@@ -65,7 +65,7 @@ function increaseQuantity(event) {
   const productId = event.target.getAttribute('data-id');
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-  const item = cart.find(item => item.id === productId);
+  const item = cart.find((item) => item.id === productId);
   if (item) {
     item.quantity += 1; // Increase the quantity
     localStorage.setItem('cart', JSON.stringify(cart));
@@ -77,14 +77,14 @@ function decreaseQuantity(event) {
   const productId = event.target.getAttribute('data-id');
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-  const item = cart.find(item => item.id === productId);
+  const item = cart.find((item) => item.id === productId);
   if (item && item.quantity > 1) {
     item.quantity -= 1; // Decrease the quantity
     localStorage.setItem('cart', JSON.stringify(cart));
     displayCartItems(); // Refresh the cart display
   } else if (item && item.quantity === 1) {
     // If quantity is 1, remove the item from the cart
-    cart = cart.filter(item => item.id !== productId);
+    cart = cart.filter((item) => item.id !== productId);
     localStorage.setItem('cart', JSON.stringify(cart));
     displayCartItems(); // Refresh the cart display
   }

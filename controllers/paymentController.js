@@ -1,5 +1,3 @@
-const Payment = require('../models/payment');
-
 /**
  * @swagger
  * components:
@@ -80,7 +78,9 @@ const paymentController = {
 
       // Validate input data
       if (!userId || !orderId || !amount || !currency) {
-        return res.status(400).json({ error: 'Missing required fields: userId, orderId, amount, or currency' });
+        return res
+          .status(400)
+          .json({ error: 'Missing required fields: userId, orderId, amount, or currency' });
       }
 
       // Check if the order exists
@@ -170,7 +170,7 @@ const paymentController = {
       console.error('Error getting payment:', error);
       return res.status(500).json({ error: error.message });
     }
-  }
+  },
 };
 
 module.exports = paymentController;

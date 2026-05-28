@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleWare');
+const { authMiddleware } = require('../middleware/authMiddleWare');
 
 const parseQuantity = (quantity) => {
   const parsedQuantity = Number(quantity);
@@ -11,15 +11,15 @@ const calculateOrderTotal = (product, quantity) => Number(product.price) * quant
 const checkOrderOwnership = async (req, res, next) => {
   try {
     const order = await req.models.Order.findByPk(req.params.id);
-    
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    
+
     if (req.user.role !== 'admin' && order.userId !== req.user.id) {
       return res.status(403).json({ message: 'Access denied: This is not your order' });
     }
-    
+
     req.order = order;
     next();
   } catch (error) {
@@ -35,7 +35,7 @@ const orderController = {
 
       if (!productId || !quantity) {
         return res.status(400).json({
-          error: 'Missing required fields: productId or quantity'
+          error: 'Missing required fields: productId or quantity',
         });
       }
 
@@ -56,7 +56,7 @@ const orderController = {
         productId,
         quantity: parsedQuantity,
         total: calculatedTotal,
-        status: 'pending'
+        status: 'pending',
       });
 
       res.status(201).json(order);
@@ -68,7 +68,7 @@ const orderController = {
   getAllOrders: async (req, res) => {
     try {
       let whereClause = {};
-      
+
       if (req.user.role !== 'admin') {
         whereClause = { userId: req.user.id };
       }
@@ -79,9 +79,9 @@ const orderController = {
           {
             model: req.models.Product,
             as: 'product',
-            attributes: ['id', 'name', 'price']
-          }
-        ]
+            attributes: ['id', 'name', 'price'],
+          },
+        ],
       });
       res.status(200).json(orders);
     } catch (error) {
@@ -96,23 +96,23 @@ const orderController = {
           {
             model: req.models.Product,
             as: 'product',
-            attributes: ['id', 'name', 'price']
+            attributes: ['id', 'name', 'price'],
           },
           {
             model: req.models.Payment,
-            as: 'payment'
-          }
-        ]
+            as: 'payment',
+          },
+        ],
       });
-      
+
       if (!order) {
         return res.status(404).json({ message: 'Order not found' });
       }
-      
+
       if (req.user.role !== 'admin' && order.userId !== req.user.id) {
         return res.status(403).json({ message: 'Access denied' });
       }
-      
+
       res.status(200).json(order);
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -123,7 +123,7 @@ const orderController = {
     try {
       const { quantity, status } = req.body;
       const updateData = {};
-      
+
       if (quantity !== undefined) {
         const parsedQuantity = parseQuantity(quantity);
         if (!parsedQuantity) {
@@ -131,7 +131,7 @@ const orderController = {
         }
 
         const order = await req.models.Order.findByPk(req.params.id, {
-          include: [{ model: req.models.Product, as: 'product' }]
+          include: [{ model: req.models.Product, as: 'product' }],
         });
 
         if (!order) {
@@ -147,7 +147,7 @@ const orderController = {
       }
 
       await req.models.Order.update(updateData, {
-        where: { id: req.params.id }
+        where: { id: req.params.id },
       });
 
       const updatedOrder = await req.models.Order.findByPk(req.params.id);
@@ -160,14 +160,14 @@ const orderController = {
   deleteOrder: async (req, res) => {
     try {
       await req.models.Order.destroy({
-        where: { id: req.params.id }
+        where: { id: req.params.id },
       });
 
       res.status(200).json({ message: 'Order deleted successfully' });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 };
 
 router.post('/orders', authMiddleware, orderController.createOrder);
