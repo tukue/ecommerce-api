@@ -4,175 +4,223 @@
 
 A backend-focused e-commerce API that demonstrates more than CRUD: it is structured to showcase **operational excellence**, including **monitoring, observability, reliability patterns, secure defaults, and production-aware architecture**.
 
-## Why this project stands out for backend roles
+## Problem this solves
 
-This repository is intentionally designed as a **backend developer portfolio project** with focus on:
+Building an e-commerce backend requires orchestrating multiple concerns: user authentication, product management, order processing, secure payment handling, and operational visibility. Most demo APIs stop at basic CRUD. This project demonstrates how to build a **production-grade backend** by addressing:
 
-- API design and business logic boundaries
-- maintainable architecture (routes → controllers → services → repositories)
-- robust error handling and validation
-- JWT auth and rate-limited login endpoint
-- production-grade telemetry (metrics + tracing + structured logging)
-- health checks and graceful shutdown behavior
-- containerized runtime and CI-ready workflow
+- **Secure transactions** — JWT authentication, admin role-based access control, rate-limited login, and server-side price enforcement on Stripe checkout prevent manipulation
+- **Operational visibility** — structured logging with correlation IDs, Prometheus metrics, distributed tracing via OpenTelemetry/Jaeger, and pre-built Grafana dashboards give full insight into system behavior
+- **Maintainable architecture** — layered separation (routes → controllers → services → repositories → models) keeps business logic decoupled from transport and data access
+- **Reliability** — health probes, graceful shutdown, connection pooling, and CI/CD pipeline ensure the system can be deployed and operated confidently
+- **Full payment flow** — end-to-end Stripe integration with secure server-side line item pricing so clients cannot tamper with prices
 
-## Architecture
+## System architecture
 
 ```mermaid
 flowchart TB
-    subgraph Frontend["Frontend (Browser)"]
-        EJS["EJS Templates\n(index, login, cart, profile, success)"]
-        JS["Vanilla JS\n(scripts.js, login.js, cart.js)"]
-        CSS["CSS\n(styles.css)"]
+    subgraph Clients["Clients"]
+        Browser["Browser\n(EJS frontend on port 5004)"]
+        APIClient["External API Consumer\n(cURL, Postman, mobile app)"]
     end
 
-    subgraph Backend["Backend (Node.js / Express)"]
+    subgraph DockerHost["Docker Host"]
         direction TB
-        MW["Middleware Pipeline\ncorrelationId → Logger → JWT Auth → Rate Limit → Telemetry → Error Handler"]
-        R["Routes → Controllers → Services → Repositories → ORM → PostgreSQL"]
+
+        subgraph AppContainer["app container (port 5004)"]
+            MW["Middleware Pipeline\ncorrelationId → Logger → JWT Auth\n→ Rate Limit → Telemetry"]
+            Routes["Routes\n/auth /products /orders\n/checkout /payments /health"]
+            Controllers["Controllers\n(orchestrate request/response)"]
+            Services["Services\n(business rules, validation)"]
+            Repos["Repositories\n(data access abstraction)"]
+            Models["Sequelize ORM\nUser, Product, Order, Payment"]
+        end
+
+        subgraph Infra["Infrastructure Containers"]
+            PG[("PostgreSQL (port 5432)\nprimary database")]
+            Prom["Prometheus (port 9090)\nmetrics scraping"]
+            Graf["Grafana (port 3000)\ndashboards & visualization"]
+            Jaeger["Jaeger (port 16686)\ndistributed trace storage"]
+        end
     end
 
-    subgraph Observability["Observability Stack"]
-        Prom["Prometheus\n/metrics endpoint"]
-        Graf["Grafana\nDashboards"]
-        Jaeger["Jaeger\nDistributed Tracing"]
-        Logs["Structured JSON Logs\nwith correlationId"]
+    subgraph External["External Services"]
+        Stripe["Stripe API\n(payment processing,\ncheckout sessions)"]
     end
 
-    Frontend -->|"HTTP requests\n(JWT in header)"| Backend
-    Backend -->|"HTML pages"| Frontend
-    Backend -->|"Stripe checkout session"| Stripe["Stripe API"]
+    Browser -->|"HTTP (HTML pages)"| Routes
+    APIClient -->|"HTTP (JSON API)"| Routes
+    Routes --> MW
+    MW --> Controllers
+    Controllers --> Services
+    Services --> Repos
+    Repos --> Models
+    Models --> PG
 
-    Backend -.->|"emit metrics"| Prom
-    Backend -.->|"export traces (OTLP)"| Jaeger
-    Backend -.->|"write logs"| Logs
+    Controllers --> Stripe
+    AppContainer -.->|"/metrics scrape"| Prom
+    AppContainer -.->|"OTLP traces"| Jaeger
+    AppContainer -.->|"stdout JSON logs"| Logs
+
     Prom --> Graf
     Jaeger --> Graf
 
-    style Frontend fill:#1a1a2e,color:#fff,stroke:#4a4a8a
-    style Backend fill:#1b2d1b,color:#fff,stroke:#3a8a3a
-    style Observability fill:#2d1b1b,color:#fff,stroke:#8a3a3a
+    subgraph HostMachine["Host Machine"]
+        Logs["Docker logs (stdout)\nstructured JSON with correlationId"]
+        DockerCLI["docker compose up --build\nstarts all services"]
+    end
+
+    DockerCLI -.->|"orchestrates"| DockerHost
+
+    style AppContainer fill:#1b2d1b,color:#fff,stroke:#3a8a3a
+    style Infra fill:#1a1a2e,color:#fff,stroke:#4a4a8a
+    style External fill:#2d1b1b,color:#fff,stroke:#8a3a3a
+    style HostMachine fill:#2a2a2a,color:#fff,stroke:#666
 ```
 
-Detailed architecture notes: `docs/ARCHITECTURE.md`. Pending improvements tracked in `docs/PENDING_IMPROVEMENTS.md`.
+**Request flow:** Client → Middleware pipeline (correlation ID, logging, JWT verification, rate limiting, tracing) → Routes → Controllers → Services → Repositories → ORM → PostgreSQL. Observability data (metrics, traces, logs) emitted at every layer.
 
 ## Tech stack
 
-- **Runtime:** Node.js 20, Express 4
-- **Database:** PostgreSQL + Sequelize ORM
-- **Auth/Security:** JWT, bcrypt, express-rate-limit
-- **Observability:** Prometheus, Grafana, OpenTelemetry, Jaeger
-- **Docs:** Swagger UI (`/api-docs`)
-- **Testing:** Jest + Supertest
-- **Containerization:** Docker + Docker Compose
-- **CI:** GitHub Actions workflow
+| Category             | Technologies                                           |
+| -------------------- | ------------------------------------------------------ |
+| **Runtime**          | Node.js 20, Express 4                                  |
+| **Database**         | PostgreSQL 15, Sequelize ORM 6                         |
+| **Auth**             | JWT, bcryptjs, express-rate-limit                      |
+| **Payments**         | Stripe API (checkout sessions)                         |
+| **Observability**    | Prometheus, Grafana, OpenTelemetry, Jaeger             |
+| **Frontend**         | EJS templates, vanilla JavaScript, CSS                 |
+| **API Docs**         | Swagger UI (swagger-jsdoc)                             |
+| **Testing**          | Jest, Supertest, jsdom                                 |
+| **Containerization** | Docker, Docker Compose                                 |
+| **CI/CD**            | GitHub Actions (lint + backend tests + frontend tests) |
 
-## API overview
+## Running the application
 
-Base URL: `http://localhost:5004`
-
-Core domains:
-
-- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/profile`
-- `GET/POST/PUT/DELETE /api/products`
-- `GET/POST /api` (orders)
-- `POST /api/checkout`
-- `POST /api/payments`
-
-Operational endpoints:
-
-- `GET /health/live` – process heartbeat
-- `GET /health/ready` – dependency readiness (DB connectivity)
-- `GET /metrics` – Prometheus scrape endpoint
-- `GET /api-docs` – interactive API docs
-
-## Monitoring and observability
-
-### 1) Structured logging
-
-Each request is logged as JSON with:
-
-- timestamp
-- level
-- method/path/status
-- duration
-- `correlationId`
-
-### 2) Correlation IDs
-
-`x-correlation-id` is accepted or generated per request and returned in responses. This allows tracing a single request across logs, metrics labels, and traces.
-
-### 3) Metrics (Prometheus)
-
-Available on `/metrics`:
-
-- `http_request_duration_seconds` (histogram)
-- `http_requests_total` (counter)
-- `http_in_flight_requests` (gauge)
-- `api_errors_total` (counter)
-- default Node.js process/runtime metrics
-
-### 4) Tracing (OpenTelemetry)
-
-OpenTelemetry auto-instrumentation is configured for Express and PostgreSQL and exports traces to Jaeger via OTLP (`OTEL_EXPORTER_OTLP_ENDPOINT`).
-
-### 5) Dashboards and visualization
-
-Grafana provisioning is included under `grafana/provisioning/` and Prometheus scrape configuration is under `prometheus/prometheus.yml`.
-
-## Local development setup
-
-### Prerequisites
-
-- Node.js 20+
-- Docker + Docker Compose
-- PostgreSQL (if running without Docker)
-
-### 1) Configure environment
-
-```bash
-cp .env.example .env
-```
-
-Update secrets (especially `JWT_SECRET`, Stripe keys, and DB URL).
-
-### 2) Install dependencies
-
-```bash
-npm ci
-```
-
-### 3) Run locally
-
-```bash
-node server.js
-```
-
-### 4) Run with full observability stack
+### Option A: Full stack with Docker (recommended)
 
 ```bash
 docker compose up --build
 ```
 
-Access points:
+This starts all services defined in `docker-compose.yml`:
 
-- API: http://localhost:5004
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
-- Jaeger: http://localhost:16686
+| Service        | Container    | Purpose                     | Local URL                |
+| -------------- | ------------ | --------------------------- | ------------------------ |
+| **App**        | `app`        | Express API + frontend      | {BASE_URL}:{APP_PORT}    |
+| **Database**   | `postgres`   | PostgreSQL 15               | {BASE_URL}:{DB_PORT}     |
+| **Metrics**    | `prometheus` | Scrapes /metrics every 15s  | {BASE_URL}:{PROM_PORT}   |
+| **Dashboards** | `grafana`    | Pre-provisioned dashboards  | {BASE_URL}:{GRAF_PORT}   |
+| **Tracing**    | `jaeger`     | OpenTelemetry trace storage | {BASE_URL}:{JAEGER_PORT} |
+
+### Option B: Run API directly (without Docker)
+
+Prerequisites: Node.js 20+, PostgreSQL running locally.
+
+```bash
+cp .env.example .env        # configure DB URL, JWT_SECRET, Stripe keys
+npm ci                      # install dependencies
+node server.js              # starts on {BASE_URL}:{APP_PORT}
+```
+
+### Option C: Development with live observability stack
+
+Run the app locally but use Docker for the infrastructure:
+
+```bash
+# Start only PostgreSQL + Prometheus + Grafana + Jaeger
+docker compose up postgres prometheus grafana jaeger
+
+# In a separate terminal, start the app
+node server.js
+```
+
+## API endpoints
+
+| Method | Endpoint                   | Auth         | Description                                 |
+| ------ | -------------------------- | ------------ | ------------------------------------------- |
+| POST   | `/api/auth/register`       | None         | Register new user                           |
+| POST   | `/api/auth/login`          | Rate-limited | Login, returns JWT                          |
+| GET    | `/api/auth/profile`        | JWT          | User profile + recent orders                |
+| POST   | `/api/auth/request-reset`  | None         | Request password reset                      |
+| POST   | `/api/auth/reset-password` | None         | Reset password with token                   |
+| GET    | `/api/products`            | None         | List all products                           |
+| GET    | `/api/products/:id`        | None         | Get product by ID                           |
+| POST   | `/api/products`            | Admin        | Create product                              |
+| PUT    | `/api/products/:id`        | Admin        | Update product                              |
+| DELETE | `/api/products/:id`        | Admin        | Delete product                              |
+| GET    | `/api/products/search`     | None         | Search products by name                     |
+| GET    | `/api/orders`              | JWT          | List orders (user sees own, admin sees all) |
+| POST   | `/api/orders`              | JWT          | Create order                                |
+| GET    | `/api/orders/:id`          | JWT          | Get order (with ownership check)            |
+| PUT    | `/api/orders/:id`          | JWT          | Update order (admin can update status)      |
+| DELETE | `/api/orders/:id`          | JWT          | Delete order (with ownership check)         |
+| POST   | `/api/checkout`            | JWT          | Create Stripe checkout session              |
+| GET    | `/api/payments`            | JWT          | List payments                               |
+| POST   | `/api/payments`            | JWT          | Create payment record                       |
+| GET    | `/api/payments/:id`        | JWT          | Get payment by ID                           |
+| GET    | `/health/live`             | None         | Liveness probe (process uptime)             |
+| GET    | `/health/ready`            | None         | Readiness probe (DB connectivity)           |
+| GET    | `/metrics`                 | None         | Prometheus metrics endpoint                 |
+| GET    | `/api-docs`                | None         | Swagger UI documentation                    |
+
+## Containerization
+
+The project uses **Docker Compose** to orchestrate 5 containers:
+
+```yaml
+services:
+  app: # Node.js 20 (non-root user), serves API + frontend on port 5004
+  postgres: # PostgreSQL 15, persistent volume, health check
+  prometheus: # Scrapes app:/metrics every 15s, persistent volume
+  grafana: # Pre-provisioned datasources + dashboards, persistent volume
+  jaeger: # OpenTelemetry trace ingestion + UI, in-memory storage
+```
+
+- **Dockerfile** uses multi-stage build: `npm ci` in build stage, then copies only production dependencies to a clean `node:20-alpine` image running as a non-root `nodeuser`
+- **Health check** configured for `postgres` so the app waits for the database to be ready
+- **Volumes** persist PostgreSQL data, Prometheus data, and Grafana provisioning/config across restarts
+- **Dependency order**: `app depends_on: postgres`, `prometheus` and `grafana` start independently
+
+## Monitoring and observability
+
+### 1) Structured logging
+
+Every request is logged as JSON with timestamp, level, method, path, status, duration, and `correlationId`.
+
+### 2) Correlation IDs
+
+`x-correlation-id` is accepted or generated per request and returned in responses, enabling cross-referencing across logs, metrics, and traces.
+
+### 3) Metrics (Prometheus)
+
+Available at `GET /metrics`:
+
+- `http_request_duration_seconds` (histogram)
+- `http_requests_total` (counter)
+- `http_in_flight_requests` (gauge)
+- `api_errors_total` (counter)
+- Default Node.js process/runtime metrics
+
+### 4) Tracing (OpenTelemetry)
+
+Auto-instrumentation for Express and PostgreSQL exports traces to Jaeger via OTLP.
+
+### 5) Dashboards
+
+Grafana is pre-provisioned with dashboards under `grafana/provisioning/dashboards/`. Prometheus scrape config at `prometheus/prometheus.yml`.
 
 ## Production readiness
 
 ### Implemented
 
-| Category       | Items                                                             |
-| -------------- | ----------------------------------------------------------------- |
-| Config         | Environment-based config with required variable validation        |
-| Error handling | Centralized handler with consistent JSON error envelopes          |
-| Reliability    | Graceful shutdown (SIGINT/SIGTERM) — HTTP server, DB pool, tracer |
-| Security       | JWT auth, bcrypt passwords, admin RBAC, rate-limited login        |
-| CI/CD          | GitHub Actions workflow (backend + frontend tests in parallel)    |
-| Container      | Docker, Docker Compose, non-root runtime user                     |
+| Category       | Items                                                              |
+| -------------- | ------------------------------------------------------------------ |
+| Config         | Environment-based config with required variable validation         |
+| Error handling | Centralized handler with consistent JSON error envelopes           |
+| Reliability    | Graceful shutdown (SIGINT/SIGTERM) — HTTP server, DB pool, tracer  |
+| Security       | JWT auth, bcrypt passwords, admin RBAC, rate-limited login         |
+| CI/CD          | GitHub Actions (lint + backend tests + frontend tests in parallel) |
+| Container      | Docker, Docker Compose, non-root runtime user, health checks       |
 
 ### Recommended before production
 
