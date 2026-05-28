@@ -2,17 +2,19 @@
 const scripts = {
   // Initialize state
   state: {
-      cart: [],
-      products: [],
-      user: null
+    cart: [],
+    products: [],
+    user: null,
   },
 
   // Display Products
   displayProducts(products) {
-      const container = document.getElementById('products-container');
-      if (!container) return;
+    const container = document.getElementById('products-container');
+    if (!container) return;
 
-      container.innerHTML = products.map(product => `
+    container.innerHTML = products
+      .map(
+        (product) => `
           <div class="product-item" data-testid="product-${product.id}">
               <h3>${product.name}</h3>
               <p>${product.description || ''}</p>
@@ -28,132 +30,135 @@ const scripts = {
                   ${product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
               </button>
           </div>
-      `).join('');
+      `,
+      )
+      .join('');
   },
 
   // Fetch Products
   async fetchProducts() {
-      try {
-          const response = await fetch('/api/products');
-          if (!response.ok) throw new Error('Failed to fetch products');
-          
-          const products = await response.json();
-          this.displayProducts(products);
-          return products;
-      } catch (error) {
-          console.error('Error fetching products:', error);
-          const errorElement = document.getElementById('error-message');
-          if (errorElement) {
-              errorElement.textContent = 'Error fetching products';
-          }
-          return [];
+    try {
+      const response = await fetch('/api/products');
+      if (!response.ok) throw new Error('Failed to fetch products');
+
+      const products = await response.json();
+      this.displayProducts(products);
+      return products;
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      const errorElement = document.getElementById('error-message');
+      if (errorElement) {
+        errorElement.textContent = 'Error fetching products';
       }
+      return [];
+    }
   },
 
   // Cart Operations
   addToCart(event) {
-      if (!event || !event.target) return;
+    if (!event || !event.target) return;
 
-      const target = event.target;
-      const productId = target.getAttribute('data-id');
-      const productName = target.getAttribute('data-name');
-      const productPrice = parseFloat(target.getAttribute('data-price'));
+    const target = event.target;
+    const productId = target.getAttribute('data-id');
+    const productName = target.getAttribute('data-name');
+    const productPrice = parseFloat(target.getAttribute('data-price'));
 
-      if (!productId || !productName || isNaN(productPrice)) return;
+    if (!productId || !productName || isNaN(productPrice)) return;
 
-      try {
-          // Retrieve the cart from localStorage or initialize an empty array
-          let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    try {
+      // Retrieve the cart from localStorage or initialize an empty array
+      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 
-          // Check if the product already exists in the cart
-          const existingItem = cart.find(item => item.id === productId);
+      // Check if the product already exists in the cart
+      const existingItem = cart.find((item) => item.id === productId);
 
-          if (existingItem) {
-              // If the product exists, increment its quantity
-              existingItem.quantity += 1;
-          } else {
-              // If the product does not exist, add it with a quantity of 1
-              cart.push({
-                  id: productId,
-                  name: productName,
-                  price: productPrice,
-                  quantity: 1
-              });
-          }
-
-          // Save the updated cart back to localStorage
-          localStorage.setItem('cart', JSON.stringify(cart));
-
-          // Update the cart display
-          this.updateCartDisplay();
-
-          // Notify the user
-          alert(`${productName} added to cart!`);
-      } catch (error) {
-          console.error('Error adding to cart:', error);
+      if (existingItem) {
+        // If the product exists, increment its quantity
+        existingItem.quantity += 1;
+      } else {
+        // If the product does not exist, add it with a quantity of 1
+        cart.push({
+          id: productId,
+          name: productName,
+          price: productPrice,
+          quantity: 1,
+        });
       }
+
+      // Save the updated cart back to localStorage
+      localStorage.setItem('cart', JSON.stringify(cart));
+
+      // Update the cart display
+      this.updateCartDisplay();
+
+      // Notify the user
+      alert(`${productName} added to cart!`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
   },
 
   updateCartDisplay() {
-      const cartCount = document.getElementById('cart-count');
-      try {
-          // Retrieve the cart from localStorage
-          const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cartCount = document.getElementById('cart-count');
+    try {
+      // Retrieve the cart from localStorage
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
 
-          // Calculate the total quantity of items in the cart
-          const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+      // Calculate the total quantity of items in the cart
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-          // Update the cart count display
-          if (cartCount) {
-              cartCount.textContent = totalItems.toString();
-          }
-      } catch (error) {
-          console.error('Error updating cart display:', error);
+      // Update the cart count display
+      if (cartCount) {
+        cartCount.textContent = totalItems.toString();
       }
+    } catch (error) {
+      console.error('Error updating cart display:', error);
+    }
   },
 
   // Search functionality
   searchProducts(query) {
-      if (!query) {
-          this.displayProducts(this.state.products);
-          return;
-      }
+    if (!query) {
+      this.displayProducts(this.state.products);
+      return;
+    }
 
-      const filteredProducts = this.state.products.filter(product => 
-          product.name.toLowerCase().includes(query.toLowerCase()) ||
-          (product.description && product.description.toLowerCase().includes(query.toLowerCase()))
-      );
+    const filteredProducts = this.state.products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(query.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(query.toLowerCase())),
+    );
 
-      this.displayProducts(filteredProducts);
+    this.displayProducts(filteredProducts);
   },
 
   // Event listeners
   setupEventListeners() {
-      // Products container click event
-      const productsContainer = document.getElementById('products-container');
-      if (productsContainer) {
-          productsContainer.addEventListener('click', (e) => {
-              if (e.target.classList.contains('add-to-cart-btn')) {
-                  this.addToCart(e);
-              }
-          });
-      }
+    // Products container click event
+    const productsContainer = document.getElementById('products-container');
+    if (productsContainer) {
+      productsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('add-to-cart-btn')) {
+          this.addToCart(e);
+        }
+      });
+    }
 
-      // Search input event
-      const searchInput = document.getElementById('search-input');
-      if (searchInput) {
-          searchInput.addEventListener('input', (e) => {
-              this.searchProducts(e.target.value);
-          });
-      }
+    // Search input event
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.searchProducts(e.target.value);
+      });
+    }
   },
 
   // Initialize
   async init() {
-      const products = await this.fetchProducts();
-      this.state.products = products;
-      this.setupEventListeners();
-  }
+    const products = await this.fetchProducts();
+    this.state.products = products;
+    this.setupEventListeners();
+  },
 };
 
 // Fetch profile
@@ -167,8 +172,8 @@ async function fetchProfile() {
 
     const response = await fetch('/api/auth/profile', {
       headers: {
-        'Authorization': `Bearer ${token}` // Include the token in the Authorization header
-      }
+        Authorization: `Bearer ${token}`, // Include the token in the Authorization header
+      },
     });
 
     if (!response.ok) {
@@ -201,23 +206,35 @@ function displayProfile(user) {
       <p><strong>Username:</strong> ${user.username}</p>
       <p><strong>Email:</strong> ${user.email}</p>
     </div>
-    ${user.orders ? `
+    ${
+      user.orders
+        ? `
       <div class="recent-orders">
         <h3>Recent Orders</h3>
-        ${user.orders.length > 0 ? `
+        ${
+          user.orders.length > 0
+            ? `
           <ul>
-            ${user.orders.map(order => `
+            ${user.orders
+              .map(
+                (order) => `
               <li>
                 <p>Order #${order.id}</p>
                 <p>Total: $${order.total}</p>
                 <p>Status: ${order.status}</p>
                 <p>Date: ${new Date(order.createdAt).toLocaleDateString()}</p>
               </li>
-            `).join('')}
+            `,
+              )
+              .join('')}
           </ul>
-        ` : '<p>No recent orders</p>'}
+        `
+            : '<p>No recent orders</p>'
+        }
       </div>
-    ` : ''}
+    `
+        : ''
+    }
   `;
 }
 

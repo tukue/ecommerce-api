@@ -4,7 +4,7 @@ const rateLimit = require('express-rate-limit');
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: { message: 'Too many login attempts, please try again after 15 minutes' }
+  message: { message: 'Too many login attempts, please try again after 15 minutes' },
 });
 
 const authMiddleware = async (req, res, next) => {
@@ -39,11 +39,11 @@ const adminMiddleware = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
-  
+
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
-  
+
   next();
 };
 
@@ -58,7 +58,7 @@ const optionalAuthMiddleware = async (req, res, next) => {
         req.user = user;
       }
     }
-  } catch (error) {
+  } catch {
     // Token invalid/expired - just continue without user
   }
   next();

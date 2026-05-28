@@ -10,7 +10,8 @@ const options = {
     info: {
       title: 'E-commerce API',
       version: '1.0.0',
-      description: 'This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL.',
+      description:
+        'This is an E-commerce API built with Node.js, Express, Sequelize, and PostgreSQL.',
     },
     servers: [
       {

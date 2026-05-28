@@ -21,9 +21,7 @@ const app = express();
 app.use(express.json());
 
 const user = { id: 1, role: 'user' };
-const products = [
-  { id: 10, name: 'Server Product', price: 25.5 },
-];
+const products = [{ id: 10, name: 'Server Product', price: 25.5 }];
 
 app.use((req, res, next) => {
   req.models = {
@@ -39,11 +37,9 @@ app.use((req, res, next) => {
 
 app.use('/api/checkout', checkoutRoutes);
 
-const token = jwt.sign(
-  { userId: user.id },
-  process.env.JWT_SECRET,
-  { expiresIn: process.env.JWT_EXPIRES_IN }
-);
+const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+  expiresIn: process.env.JWT_EXPIRES_IN,
+});
 
 describe('Checkout Routes', () => {
   beforeEach(() => {
@@ -82,7 +78,7 @@ describe('Checkout Routes', () => {
             quantity: 2,
           }),
         ],
-      })
+      }),
     );
   });
 });

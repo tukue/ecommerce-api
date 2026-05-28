@@ -18,17 +18,17 @@ const checkoutController = {
         return res.status(400).json({ error: 'Cart is required and must be a non-empty array' });
       }
 
-      const productIds = cart.map(item => item.productId || item.id);
-      if (productIds.some(productId => !productId)) {
+      const productIds = cart.map((item) => item.productId || item.id);
+      if (productIds.some((productId) => !productId)) {
         return res.status(400).json({ error: 'Each cart item must include a productId' });
       }
 
       const products = await req.models.Product.findAll({
-        where: { id: { [Op.in]: productIds } }
+        where: { id: { [Op.in]: productIds } },
       });
-      const productMap = new Map(products.map(product => [String(product.id), product]));
+      const productMap = new Map(products.map((product) => [String(product.id), product]));
 
-      const lineItems = cart.map(item => {
+      const lineItems = cart.map((item) => {
         const productId = String(item.productId || item.id);
         const product = productMap.get(productId);
         if (!product) {
@@ -63,8 +63,8 @@ const checkoutController = {
         success_url: successUrl,
         cancel_url: cancelUrl,
         metadata: {
-          userId: req.user.id.toString()
-        }
+          userId: req.user.id.toString(),
+        },
       });
 
       res.json({ id: session.id });
@@ -72,7 +72,7 @@ const checkoutController = {
       console.error('Error creating checkout session:', error);
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 };
 
 router.post('/create-checkout-session', authMiddleware, checkoutController.createCheckoutSession);

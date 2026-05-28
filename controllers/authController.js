@@ -3,8 +3,10 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 
-const PASSWORD_REQUIREMENTS_MESSAGE = 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.';
-const isStrongPassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password);
+const PASSWORD_REQUIREMENTS_MESSAGE =
+  'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.';
+const isStrongPassword = (password) =>
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password);
 
 const authController = {
   async register(req, res) {
@@ -12,22 +14,22 @@ const authController = {
       const { username, email, password } = req.body;
 
       // Check if user already exists
-      const existingUser = await req.models.User.findOne({ 
-        where: { 
-          [Op.or]: [{ email }, { username }] 
-        } 
+      const existingUser = await req.models.User.findOne({
+        where: {
+          [Op.or]: [{ email }, { username }],
+        },
       });
-      
+
       if (existingUser) {
-        return res.status(400).json({ 
-          message: 'User with this email or username already exists' 
+        return res.status(400).json({
+          message: 'User with this email or username already exists',
         });
       }
 
       // Validate password strength
       if (!isStrongPassword(password)) {
         return res.status(400).json({
-          message: PASSWORD_REQUIREMENTS_MESSAGE
+          message: PASSWORD_REQUIREMENTS_MESSAGE,
         });
       }
 
@@ -35,15 +37,13 @@ const authController = {
       const user = await req.models.User.create({
         username,
         email,
-        password
+        password,
       });
 
       // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      });
 
       // Remove sensitive data from response
       const userResponse = user.toJSON();
@@ -55,7 +55,7 @@ const authController = {
       return res.status(201).json({
         message: 'Registration successful! Welcome to our platform.',
         user: userResponse,
-        token
+        token,
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -80,11 +80,9 @@ const authController = {
       }
 
       // Generate token
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      });
 
       // Remove sensitive data from response
       const userResponse = user.toJSON();
@@ -92,7 +90,7 @@ const authController = {
 
       return res.status(200).json({
         user: userResponse,
-        token
+        token,
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -109,10 +107,10 @@ const authController = {
             as: 'orders', // Use the alias defined in the association
             attributes: ['id', 'total', 'status', 'createdAt'],
             limit: 5,
-            order: [['createdAt', 'DESC']]
-          }
+            order: [['createdAt', 'DESC']],
+          },
         ],
-        attributes: { exclude: ['password'] }
+        attributes: { exclude: ['password'] },
       });
 
       if (!user) {
@@ -143,13 +141,13 @@ const authController = {
       const hashedToken = await bcrypt.hash(resetToken, 12);
       await user.update({
         resetToken: hashedToken,
-        resetTokenExpiry
+        resetTokenExpiry,
       });
 
       // In a real application, send this via email
       return res.status(200).json({
         message: 'Password reset token generated',
-        resetToken // In production, this should be sent via email
+        resetToken, // In production, this should be sent via email
       });
     } catch (error) {
       console.error('Password reset request error:', error);
@@ -163,19 +161,19 @@ const authController = {
 
       if (!isStrongPassword(newPassword)) {
         return res.status(400).json({
-          message: PASSWORD_REQUIREMENTS_MESSAGE
+          message: PASSWORD_REQUIREMENTS_MESSAGE,
         });
       }
 
       const users = await req.models.User.findAll({
         where: {
           resetTokenExpiry: {
-            [Op.gt]: new Date()
+            [Op.gt]: new Date(),
           },
           resetToken: {
-            [Op.ne]: null
+            [Op.ne]: null,
           },
-        }
+        },
       });
 
       let user = null;
@@ -195,7 +193,7 @@ const authController = {
       await user.update({
         password: newPassword,
         resetToken: null,
-        resetTokenExpiry: null
+        resetTokenExpiry: null,
       });
 
       return res.status(200).json({ message: 'Password reset successful' });
@@ -203,7 +201,7 @@ const authController = {
       console.error('Password reset error:', error);
       return res.status(500).json({ error: error.message });
     }
-  }
+  },
 };
 
 module.exports = authController;

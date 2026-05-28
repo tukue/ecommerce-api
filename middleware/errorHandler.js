@@ -8,7 +8,7 @@ function notFoundHandler(req, res) {
   });
 }
 
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
   const status = err.statusCode || 500;
   logger.error('request_failed', {
     correlationId: req.correlationId,

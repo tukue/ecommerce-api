@@ -17,7 +17,7 @@ process.env.JWT_EXPIRES_IN = '24h';
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: ':memory:',
-  logging: false
+  logging: false,
 });
 
 // Initialize models
@@ -60,12 +60,10 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'Password123!'
+        password: 'Password123!',
       };
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send(userData);
+      const res = await request(app).post('/api/auth/register').send(userData);
 
       expect(res.statusCode).toBe(201);
       expect(res.body.user).toBeDefined();
@@ -79,15 +77,13 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       // Create first user
       await User.create(userData);
 
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send(userData);
+      const res = await request(app).post('/api/auth/register').send(userData);
 
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toBe('User with this email or username already exists');
@@ -99,18 +95,16 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       // Create user (password will be hashed by model hooks)
       await User.create(userData);
 
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: userData.email,
-          password: userData.password
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        email: userData.email,
+        password: userData.password,
+      });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.user).toBeDefined();
@@ -124,18 +118,16 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       // Create user (password will be hashed by model hooks)
       await User.create(userData);
 
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: userData.email,
-          password: 'wrongpassword'
-        });
+      const res = await request(app).post('/api/auth/login').send({
+        email: userData.email,
+        password: 'wrongpassword',
+      });
 
       expect(res.statusCode).toBe(401);
       expect(res.body.message).toBe('Invalid email or password. Please try again.');
@@ -147,7 +139,7 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       // Create user (password will be hashed by model hooks)
@@ -158,21 +150,19 @@ describe('Auth Controller', () => {
         name: 'Test Product',
         description: 'This is a test product',
         price: 100.0,
-        stock: 10
+        stock: 10,
       });
 
       // Create some orders
       await Order.bulkCreate([
         { userId: user.id, productId: product.id, quantity: 1, total: 100, status: 'completed' },
-        { userId: user.id, productId: product.id, quantity: 2, total: 200, status: 'pending' }
+        { userId: user.id, productId: product.id, quantity: 2, total: 200, status: 'pending' },
       ]);
 
       // Generate token
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      });
 
       const res = await request(app)
         .get('/api/auth/profile')
@@ -192,7 +182,7 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       // Create user (password will be hashed by model hooks)
@@ -211,7 +201,7 @@ describe('Auth Controller', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       // Create user (password will be hashed by model hooks)
@@ -222,26 +212,22 @@ describe('Auth Controller', () => {
       const hashedToken = await bcrypt.hash(resetToken, 12);
       await user.update({
         resetToken: hashedToken,
-        resetTokenExpiry: new Date(Date.now() + 3600000)
+        resetTokenExpiry: new Date(Date.now() + 3600000),
       });
 
-      const res = await request(app)
-        .post('/api/auth/reset')
-        .send({
-          token: resetToken,
-          newPassword: 'Newpassword123!'
-        });
+      const res = await request(app).post('/api/auth/reset').send({
+        token: resetToken,
+        newPassword: 'Newpassword123!',
+      });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.message).toBe('Password reset successful');
 
       // Verify new password works
-      const loginRes = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: userData.email,
-          password: 'Newpassword123!'
-        });
+      const loginRes = await request(app).post('/api/auth/login').send({
+        email: userData.email,
+        password: 'Newpassword123!',
+      });
 
       expect(loginRes.statusCode).toBe(200);
     });
@@ -250,22 +236,20 @@ describe('Auth Controller', () => {
       const user = await User.create({
         username: 'testuser',
         email: 'test@example.com',
-        password: 'Password123'
+        password: 'Password123',
       });
 
       const resetToken = 'validtoken123';
       const hashedToken = await bcrypt.hash(resetToken, 12);
       await user.update({
         resetToken: hashedToken,
-        resetTokenExpiry: new Date(Date.now() + 3600000)
+        resetTokenExpiry: new Date(Date.now() + 3600000),
       });
 
-      const res = await request(app)
-        .post('/api/auth/reset')
-        .send({
-          token: resetToken,
-          newPassword: 'weakpassword'
-        });
+      const res = await request(app).post('/api/auth/reset').send({
+        token: resetToken,
+        newPassword: 'weakpassword',
+      });
 
       expect(res.statusCode).toBe(400);
       expect(res.body.message).toContain('special character');
@@ -275,31 +259,29 @@ describe('Auth Controller', () => {
       const user1 = await User.create({
         username: 'user1',
         email: 'user1@example.com',
-        password: 'Password123'
+        password: 'Password123',
       });
       const user2 = await User.create({
         username: 'user2',
         email: 'user2@example.com',
-        password: 'Password123'
+        password: 'Password123',
       });
 
       const resetToken1 = 'validtoken-user-1';
       const resetToken2 = 'validtoken-user-2';
       await user1.update({
         resetToken: await bcrypt.hash(resetToken1, 12),
-        resetTokenExpiry: new Date(Date.now() + 3600000)
+        resetTokenExpiry: new Date(Date.now() + 3600000),
       });
       await user2.update({
         resetToken: await bcrypt.hash(resetToken2, 12),
-        resetTokenExpiry: new Date(Date.now() + 3600000)
+        resetTokenExpiry: new Date(Date.now() + 3600000),
       });
 
-      const res = await request(app)
-        .post('/api/auth/reset')
-        .send({
-          token: resetToken2,
-          newPassword: 'Newpassword123!'
-        });
+      const res = await request(app).post('/api/auth/reset').send({
+        token: resetToken2,
+        newPassword: 'Newpassword123!',
+      });
 
       expect(res.statusCode).toBe(200);
 

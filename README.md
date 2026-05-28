@@ -1,5 +1,7 @@
 # E-Commerce Backend API (Production-Ready Portfolio Project)
 
+![CI](https://github.com/tukue/ecommerce-api/actions/workflows/ci.yml/badge.svg)
+
 A backend-focused e-commerce API that demonstrates more than CRUD: it is structured to showcase **operational excellence**, including **monitoring, observability, reliability patterns, secure defaults, and production-aware architecture**.
 
 ## Why this project stands out for backend roles
@@ -14,26 +16,45 @@ This repository is intentionally designed as a **backend developer portfolio pro
 - health checks and graceful shutdown behavior
 - containerized runtime and CI-ready workflow
 
-## Architecture summary
+## Architecture
 
-```text
-Client
-  -> Express Routes
-    -> Controllers
-      -> Services (business rules)
-        -> Repositories (data access)
-          -> Sequelize Models -> PostgreSQL
+```mermaid
+flowchart TB
+    subgraph Frontend["Frontend (Browser)"]
+        EJS["EJS Templates\n(index, login, cart, profile, success)"]
+        JS["Vanilla JS\n(scripts.js, login.js, cart.js)"]
+        CSS["CSS\n(styles.css)"]
+    end
 
-Cross-cutting:
-- request context (x-correlation-id)
-- structured JSON logs
-- Prometheus metrics (/metrics)
-- OpenTelemetry traces -> Jaeger
-- centralized error handling
-- liveness/readiness probes
+    subgraph Backend["Backend (Node.js / Express)"]
+        direction TB
+        MW["Middleware Pipeline\ncorrelationId → Logger → JWT Auth → Rate Limit → Telemetry → Error Handler"]
+        R["Routes → Controllers → Services → Repositories → ORM → PostgreSQL"]
+    end
+
+    subgraph Observability["Observability Stack"]
+        Prom["Prometheus\n/metrics endpoint"]
+        Graf["Grafana\nDashboards"]
+        Jaeger["Jaeger\nDistributed Tracing"]
+        Logs["Structured JSON Logs\nwith correlationId"]
+    end
+
+    Frontend -->|"HTTP requests\n(JWT in header)"| Backend
+    Backend -->|"HTML pages"| Frontend
+    Backend -->|"Stripe checkout session"| Stripe["Stripe API"]
+
+    Backend -.->|"emit metrics"| Prom
+    Backend -.->|"export traces (OTLP)"| Jaeger
+    Backend -.->|"write logs"| Logs
+    Prom --> Graf
+    Jaeger --> Graf
+
+    style Frontend fill:#1a1a2e,color:#fff,stroke:#4a4a8a
+    style Backend fill:#1b2d1b,color:#fff,stroke:#3a8a3a
+    style Observability fill:#2d1b1b,color:#fff,stroke:#8a3a3a
 ```
 
-Detailed architecture notes: `docs/ARCHITECTURE.md`.
+Detailed architecture notes: `docs/ARCHITECTURE.md`. Pending improvements tracked in `docs/PENDING_IMPROVEMENTS.md`.
 
 ## Tech stack
 
@@ -51,6 +72,7 @@ Detailed architecture notes: `docs/ARCHITECTURE.md`.
 Base URL: `http://localhost:5004`
 
 Core domains:
+
 - `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/profile`
 - `GET/POST/PUT/DELETE /api/products`
 - `GET/POST /api` (orders)
@@ -58,6 +80,7 @@ Core domains:
 - `POST /api/payments`
 
 Operational endpoints:
+
 - `GET /health/live` – process heartbeat
 - `GET /health/ready` – dependency readiness (DB connectivity)
 - `GET /metrics` – Prometheus scrape endpoint
@@ -66,7 +89,9 @@ Operational endpoints:
 ## Monitoring and observability
 
 ### 1) Structured logging
+
 Each request is logged as JSON with:
+
 - timestamp
 - level
 - method/path/status
@@ -74,10 +99,13 @@ Each request is logged as JSON with:
 - `correlationId`
 
 ### 2) Correlation IDs
+
 `x-correlation-id` is accepted or generated per request and returned in responses. This allows tracing a single request across logs, metrics labels, and traces.
 
 ### 3) Metrics (Prometheus)
+
 Available on `/metrics`:
+
 - `http_request_duration_seconds` (histogram)
 - `http_requests_total` (counter)
 - `http_in_flight_requests` (gauge)
@@ -85,71 +113,128 @@ Available on `/metrics`:
 - default Node.js process/runtime metrics
 
 ### 4) Tracing (OpenTelemetry)
+
 OpenTelemetry auto-instrumentation is configured for Express and PostgreSQL and exports traces to Jaeger via OTLP (`OTEL_EXPORTER_OTLP_ENDPOINT`).
 
 ### 5) Dashboards and visualization
+
 Grafana provisioning is included under `grafana/provisioning/` and Prometheus scrape configuration is under `prometheus/prometheus.yml`.
 
 ## Local development setup
 
 ### Prerequisites
+
 - Node.js 20+
 - Docker + Docker Compose
 - PostgreSQL (if running without Docker)
 
 ### 1) Configure environment
+
 ```bash
 cp .env.example .env
 ```
+
 Update secrets (especially `JWT_SECRET`, Stripe keys, and DB URL).
 
 ### 2) Install dependencies
+
 ```bash
 npm ci
 ```
 
 ### 3) Run locally
+
 ```bash
 node server.js
 ```
 
 ### 4) Run with full observability stack
+
 ```bash
 docker compose up --build
 ```
 
 Access points:
+
 - API: http://localhost:5004
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000
 - Jaeger: http://localhost:16686
 
-## Production readiness considerations
+## Production readiness
 
-Implemented:
-- environment-based configuration with required variable checks
-- centralized error handling with consistent JSON envelopes
-- graceful shutdown (`SIGINT`, `SIGTERM`) for HTTP server, DB pool, and tracer
-- request rate limiting on auth login endpoint
-- CI pipeline (`.github/workflows/ci.yml`)
-- non-root runtime in Docker image
+### Implemented
 
-Recommended before real production:
-- migrate `sequelize.sync({ alter: ... })` to migration-based deployment strategy
-- add secret manager integration (AWS Secrets Manager, Vault, etc.)
-- enforce TLS termination and reverse-proxy hardening
-- add SLO definitions and alert rules (latency, error rate, saturation)
+| Category       | Items                                                             |
+| -------------- | ----------------------------------------------------------------- |
+| Config         | Environment-based config with required variable validation        |
+| Error handling | Centralized handler with consistent JSON error envelopes          |
+| Reliability    | Graceful shutdown (SIGINT/SIGTERM) — HTTP server, DB pool, tracer |
+| Security       | JWT auth, bcrypt passwords, admin RBAC, rate-limited login        |
+| CI/CD          | GitHub Actions workflow (backend + frontend tests in parallel)    |
+| Container      | Docker, Docker Compose, non-root runtime user                     |
+
+### Recommended before production
+
+See [`docs/PENDING_IMPROVEMENTS.md`](docs/PENDING_IMPROVEMENTS.md) for the full prioritized checklist. Key items:
+
+- Database migrations (replace `sequelize.sync`)
+- Input validation library (Zod/Joi)
+- Security headers (Helmet)
+- HTTP-only cookies for JWT
 
 ## Suggested portfolio talking points
 
 When presenting this project, emphasize:
-- “I built observability in from day one (logs, metrics, traces) rather than adding it after incidents.”
-- “I designed health probes and graceful shutdown to support container orchestration and zero-downtime deployments.”
-- “I separated business logic from transport and data access concerns for maintainability and scale.”
+
+- "I built observability in from day one (logs, metrics, traces) rather than adding it after incidents."
+- "I designed health probes and graceful shutdown to support container orchestration and zero-downtime deployments."
+- "I separated business logic from transport and data access concerns for maintainability and scale."
+- "I identified and documented 20+ technical improvements with prioritization — the same approach I'd use onboarding to a production system."
+
+## Pending improvements
+
+Tracked in detail at [`docs/PENDING_IMPROVEMENTS.md`](docs/PENDING_IMPROVEMENTS.md) — includes security hardening, architectural consistency, production readiness, and testing gaps with a phase-based scoring system.
 
 ## Future improvements
 
-- Add Redis-based caching and idempotency keys for checkout/payment reliability.
-- Add outbox pattern + message broker integration (Kafka/SQS) for order events.
-- Add contract tests and load-testing CI stage.
-- Add SLO dashboards and alert runbooks in `docs/`.
+### Performance & scaling
+
+- **Redis caching** — cache product listings and search results to reduce DB load and improve response times
+- **Database read replicas** — separate read/write traffic for horizontal scaling under load
+- **Connection pooling tuning** — environment-aware pool sizing for PostgreSQL
+
+### Reliability & resilience
+
+- **Idempotency keys** — prevent duplicate checkout/payment submissions on network retries
+- **Outbox pattern + message broker** (Kafka/SQS) — reliable order event processing and async fulfillment workflows
+- **Retry with exponential backoff** — for Stripe API calls and external service integrations
+- **Circuit breaker** — protect downstream dependencies from cascading failures
+
+### Security
+
+- **Rate limiting on all endpoints** — general API abuse protection beyond just login
+- **Refresh token rotation** — short-lived access tokens + long-lived refresh tokens with rotation
+- **Secrets manager integration** (AWS Secrets Manager / Vault) — no secrets in environment variables
+- **TLS termination** — enforce HTTPS at reverse proxy layer
+
+### Testing & quality
+
+- **Contract tests** — validate API responses against OpenAPI spec (Pact or Dredd)
+- **Load testing CI stage** — automated k6/artillery tests as a gating step
+- **Fuzz testing** — edge case discovery for input validation
+- **Mutation testing** — measure test suite effectiveness
+
+### Observability maturity
+
+- **SLO dashboards** — track latency, error rate, and throughput against defined targets
+- **Alert rules** — Prometheus alerting for p99 latency spikes, elevated 5xx rates, DB connectivity loss
+- **Business metrics** — orders created, revenue processed, products sold as Prometheus counters
+- **Log correlation runbooks** — documented workflows for tracing issues using `correlationId`
+
+### Platform & DevOps
+
+- **Kubernetes deployment manifests** — Helm charts or Kustomize for production orchestration
+- **Blue-green deployments** — zero-downtime release strategy
+- **Feature flags** — gradual rollouts and A/B testing capability
+- **Database migration pipeline** — automated migrations as part of CI/CD with rollback support

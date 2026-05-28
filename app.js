@@ -3,7 +3,13 @@ const cors = require('cors');
 const { DataTypes } = require('sequelize');
 
 const sequelize = require('./config/db');
-const { register, httpRequestDuration, httpRequestTotal, inFlightRequests, apiErrorTotal } = require('./config/metrics');
+const {
+  register,
+  httpRequestDuration,
+  httpRequestTotal,
+  inFlightRequests,
+  apiErrorTotal,
+} = require('./config/metrics');
 const requestContext = require('./middleware/requestContext');
 const requestLogger = require('./middleware/requestLogger');
 const telemetryMiddleware = require('./middleware/telemetry');
@@ -72,7 +78,9 @@ app.get('/metrics', async (req, res) => {
 
 app.get('/login', (req, res) => res.render('login', { message: 'Please log in' }));
 app.get('/', (req, res) => res.render('index', { message: 'Welcome to the E-commerce API' }));
-app.get('/cart', (req, res) => res.render('cart', { stripePublicKey: process.env.STRIPE_PUBLIC_KEY }));
+app.get('/cart', (req, res) =>
+  res.render('cart', { stripePublicKey: process.env.STRIPE_PUBLIC_KEY }),
+);
 
 app.use('/health', healthRoutes);
 app.use('/api', orderRoutes);

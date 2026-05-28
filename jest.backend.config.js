@@ -5,5 +5,5 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.js'],
   moduleDirectories: ['node_modules', '<rootDir>'],
   rootDir: '.',
-  testPathIgnorePatterns: ['/node_modules/']
+  testPathIgnorePatterns: ['/node_modules/'],
 };
