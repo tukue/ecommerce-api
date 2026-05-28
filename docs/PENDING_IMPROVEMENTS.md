@@ -1,7 +1,5 @@
 # Pending Improvements
 
-**Current Score: 7.5 / 10**
-
 Checklist of improvements needed to reach production readiness, ordered by impact.
 
 ---
@@ -78,3 +76,5 @@ Re-score after each phase:
 - **Phase 2 (Architecture consistency)** → goal: 9/10
 - **Phase 3 (Production readiness)** → goal: 9.5/10
 - **Phase 4 (Tooling + tests + polish)** → goal: 10/10
+
+
