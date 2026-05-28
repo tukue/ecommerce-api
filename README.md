@@ -1,5 +1,7 @@
 # E-Commerce Backend API (Production-Ready Portfolio Project)
 
+![CI](https://github.com/tukue/ecommerce-api/actions/workflows/ci.yml/badge.svg)
+
 A backend-focused e-commerce API that demonstrates more than CRUD: it is structured to showcase **operational excellence**, including **monitoring, observability, reliability patterns, secure defaults, and production-aware architecture**.
 
 ## Why this project stands out for backend roles
@@ -14,26 +16,108 @@ This repository is intentionally designed as a **backend developer portfolio pro
 - health checks and graceful shutdown behavior
 - containerized runtime and CI-ready workflow
 
-## Architecture summary
+## Architecture
 
-```text
-Client
-  -> Express Routes
-    -> Controllers
-      -> Services (business rules)
-        -> Repositories (data access)
-          -> Sequelize Models -> PostgreSQL
+```mermaid
+flowchart TB
+    subgraph Client["Clients"]
+        Browser["Browser App\n(EJS + Vanilla JS)"]
+        API_Client["API Consumer\n(cURL, Postman, mobile)"]
+    end
 
-Cross-cutting:
-- request context (x-correlation-id)
-- structured JSON logs
-- Prometheus metrics (/metrics)
-- OpenTelemetry traces -> Jaeger
-- centralized error handling
-- liveness/readiness probes
+    subgraph Edge ["Edge Layer"]
+        LB["Reverse Proxy\n(terminates TLS)"]
+    end
+
+    subgraph Middleware ["Middleware Stack"]
+        CTX["requestContext\n(correlation ID)"]
+        LOG["requestLogger\n(structured JSON)"]
+        AUTH["authMiddleWare\n(JWT verification)"]
+        RL["rateLimiter\n(express-rate-limit)"]
+        ERR["errorHandler\n(centralized)"]
+        TEL["telemetry\n(OpenTelemetry spans)"]
+    end
+
+    subgraph Routes ["Routes"]
+        AR["authRoutes\n/login /register /reset"]
+        PR["productRoutes\n/products CRUD + search"]
+        OR["orderRoutes\n/orders CRUD"]
+        CHR["checkoutRoutes\n/checkout (Stripe)"]
+        PYR["paymentRoutes\n/payments"]
+        HR["healthRoutes\n/live /ready"]
+    end
+
+    subgraph Controllers ["Controllers"]
+        AC["authController"]
+        PC["productController"]
+        CHC["checkoutController"]
+    end
+
+    subgraph Services ["Service Layer"]
+        PS["productService\n(business rules,\nvalidation)"]
+    end
+
+    subgraph Repos ["Repository Layer"]
+        PRR["productRepository\n(data access)"]
+    end
+
+    subgraph Models ["Sequelize ORM Models"]
+        UM["User"]
+        PM["Product"]
+        OM["Order"]
+        PYM["Payment"]
+    end
+
+    subgraph DB ["Database"]
+        PG[("PostgreSQL")]
+    end
+
+    subgraph Observability ["Observability Stack"]
+        PROM["Prometheus\n/metrics"]
+        GRAF["Grafana\n(dashboards)"]
+        JAEGER["Jaeger\n(traces via OTLP)"]
+        LOGS["Structured JSON Logs\nwith correlationId"]
+    end
+
+    subgraph External ["External Services"]
+        STRIPE["Stripe\n(payment processing)"]
+    end
+
+    Browser --> LB
+    API_Client --> LB
+    LB --> CTX --> LOG --> AUTH --> RL --> TEL
+    TEL --> Routes
+
+    AR --> AC
+    PR --> PC
+    OR --> AC
+    CHR --> CHC
+    PYR --> AC
+    HR --> ERR
+
+    PC --> PS --> PRR --> PM
+
+    PM --> PG
+    UM --> PG
+    OM --> PG
+    PYM --> PG
+
+    CHC --> STRIPE
+
+    Routes -.-> PROM
+    Routes -.-> LOGS
+    Routes -.-> JAEGER
+    PROM --> GRAF
+    JAEGER --> GRAF
+
+    style Observability fill:#1a1a2e,color:#eee,stroke:#4a4a8a
+    style External fill:#2d1b1b,color:#eee,stroke:#8a3a3a
+    style DB fill:#1b2d1b,color:#eee,stroke:#3a8a3a
 ```
 
-Detailed architecture notes: `docs/ARCHITECTURE.md`.
+**Legend:** Solid lines = request flow. Dashed lines = observability data flow. Dotted layers = not yet extracted (Orders/Payments/Auth still use inline logic).
+
+Detailed architecture notes: `docs/ARCHITECTURE.md`. Pending improvements tracked in `docs/PENDING_IMPROVEMENTS.md`.
 
 ## Tech stack
 
@@ -124,28 +208,36 @@ Access points:
 - Grafana: http://localhost:3000
 - Jaeger: http://localhost:16686
 
-## Production readiness considerations
+## Production readiness
 
-Implemented:
-- environment-based configuration with required variable checks
-- centralized error handling with consistent JSON envelopes
-- graceful shutdown (`SIGINT`, `SIGTERM`) for HTTP server, DB pool, and tracer
-- request rate limiting on auth login endpoint
-- CI pipeline (`.github/workflows/ci.yml`)
-- non-root runtime in Docker image
+### Implemented
+| Category | Items |
+|---|---|
+| Config | Environment-based config with required variable validation |
+| Error handling | Centralized handler with consistent JSON error envelopes |
+| Reliability | Graceful shutdown (SIGINT/SIGTERM) — HTTP server, DB pool, tracer |
+| Security | JWT auth, bcrypt passwords, admin RBAC, rate-limited login |
+| CI/CD | GitHub Actions workflow (backend + frontend tests in parallel) |
+| Container | Docker, Docker Compose, non-root runtime user |
 
-Recommended before real production:
-- migrate `sequelize.sync({ alter: ... })` to migration-based deployment strategy
-- add secret manager integration (AWS Secrets Manager, Vault, etc.)
-- enforce TLS termination and reverse-proxy hardening
-- add SLO definitions and alert rules (latency, error rate, saturation)
+### Recommended before production
+See [`docs/PENDING_IMPROVEMENTS.md`](docs/PENDING_IMPROVEMENTS.md) for the full prioritized checklist. Key items:
+- Database migrations (replace `sequelize.sync`)
+- Input validation library (Zod/Joi)
+- Security headers (Helmet)
+- HTTP-only cookies for JWT
 
 ## Suggested portfolio talking points
 
 When presenting this project, emphasize:
-- “I built observability in from day one (logs, metrics, traces) rather than adding it after incidents.”
-- “I designed health probes and graceful shutdown to support container orchestration and zero-downtime deployments.”
-- “I separated business logic from transport and data access concerns for maintainability and scale.”
+- "I built observability in from day one (logs, metrics, traces) rather than adding it after incidents."
+- "I designed health probes and graceful shutdown to support container orchestration and zero-downtime deployments."
+- "I separated business logic from transport and data access concerns for maintainability and scale."
+- "I identified and documented 20+ technical improvements with prioritization — the same approach I'd use onboarding to a production system."
+
+## Pending improvements
+
+Tracked in detail at [`docs/PENDING_IMPROVEMENTS.md`](docs/PENDING_IMPROVEMENTS.md) — includes security hardening, architectural consistency, production readiness, and testing gaps with a phase-based scoring system.
 
 ## Future improvements
 
