@@ -16,11 +16,11 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 
 ## Architecture Consistency (Score: 6/10)
 
-- [ ] **Extract service/repo layers** for Orders, Payments, and Auth — currently only Products follows the layered pattern; others have inline logic in controllers/route handlers
-- [ ] **Standardize error handling** — convert all controllers from manual try/catch to `asyncHandler` wrapper (consistent with `productController.js`)
-- [ ] **Rename `OrderRoutes.js` → `orderRoutes.js`** for naming consistency with all other route files
-- [ ] **Standardize field naming** — resolve `total` vs `totalPrice` inconsistency between Order model and controller
-- [ ] **Remove unused `views/products.ejs`** — no route renders it; delete or add a route
+- [x] **Extract service/repo layers** for Orders, Payments, and Auth — added `orderService`/`paymentService`/`authService` and matching repositories
+- [x] **Standardize error handling** — controllers now use the `asyncHandler` wrapper pattern; `asyncHandler` returns the wrapped promise for deterministic tests
+- [x] **Rename `OrderRoutes.js` → `orderRoutes.js`** for naming consistency with all other route files
+- [x] **Standardize field naming** — Orders now consistently use `total`; client-supplied totals are ignored and totals are calculated server-side
+- [x] **Remove unused `views/products.ejs`** — deleted because no route renders it
 
 ---
 
@@ -61,8 +61,8 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 ## Quick Wins (< 1 hour each)
 
 1. Fix `.gitignore` to allow `README.md` and docs
-2. Rename `OrderRoutes.js` → `orderRoutes.js`
-3. Delete unused `views/products.ejs`
+2. ~~Rename `OrderRoutes.js` → `orderRoutes.js`~~
+3. ~~Delete unused `views/products.ejs`~~
 4. Move `/request-reset` route from `swagger.js` to `authRoutes.js`
 5. Add forced shutdown timeout in `server.js`
 6. Add `helmet` middleware

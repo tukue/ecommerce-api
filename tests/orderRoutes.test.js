@@ -6,7 +6,8 @@ const OrderModel = require('../models/order');
 const UserModel = require('../models/user');
 const ProductModel = require('../models/product');
 const PaymentModel = require('../models/payment');
-const orderRoutes = require('../routes/OrderRoutes');
+const orderRoutes = require('../routes/orderRoutes');
+const { errorHandler } = require('../middleware/errorHandler');
 
 process.env.JWT_SECRET = 'test-secret';
 process.env.JWT_EXPIRES_IN = '24h';
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/api', orderRoutes);
+app.use(errorHandler);
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });

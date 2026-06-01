@@ -6,6 +6,7 @@ const UserModel = require('../models/user');
 const OrderModel = require('../models/order');
 const ProductModel = require('../models/product');
 const authRoutes = require('../routes/authRoutes');
+const { errorHandler } = require('../middleware/errorHandler');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -39,6 +40,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use('/api/auth', authRoutes);
+app.use(errorHandler);
 
 describe('Auth Controller', () => {
   beforeAll(async () => {
