@@ -23,7 +23,11 @@ class OrderService {
     const { productId, quantity } = input;
 
     if (!userId || !productId || quantity === undefined) {
-      throw new HttpError(400, 'Missing required fields: userId, productId, or quantity', 'ValidationError');
+      throw new HttpError(
+        400,
+        'Missing required fields: userId, productId, or quantity',
+        'ValidationError',
+      );
     }
 
     const parsedQuantity = parsePositiveInteger(quantity, 'Quantity');

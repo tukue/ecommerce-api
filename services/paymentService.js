@@ -12,7 +12,11 @@ class PaymentService {
     const { orderId, stripePaymentId, amount, currency, status } = input;
 
     if (!userId || !orderId || amount === undefined || !currency) {
-      throw new HttpError(400, 'Missing required fields: userId, orderId, amount, or currency', 'ValidationError');
+      throw new HttpError(
+        400,
+        'Missing required fields: userId, orderId, amount, or currency',
+        'ValidationError',
+      );
     }
 
     if (Number(amount) < 0) {

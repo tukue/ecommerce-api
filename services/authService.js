@@ -21,7 +21,11 @@ class AuthService {
 
     const existingUser = await this.repository.findByEmailOrUsername(email, username);
     if (existingUser) {
-      throw new HttpError(400, 'User with this email or username already exists', 'ValidationError');
+      throw new HttpError(
+        400,
+        'User with this email or username already exists',
+        'ValidationError',
+      );
     }
 
     this.assertStrongPassword(password);
@@ -40,7 +44,11 @@ class AuthService {
     const user = await this.repository.findByEmail(email);
 
     if (!user || !(await user.validatePassword(password))) {
-      throw new HttpError(401, 'Invalid email or password. Please try again.', 'AuthenticationError');
+      throw new HttpError(
+        401,
+        'Invalid email or password. Please try again.',
+        'AuthenticationError',
+      );
     }
 
     return {
