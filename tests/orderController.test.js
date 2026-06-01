@@ -19,6 +19,7 @@ const mockReq = {
     Product: {
       findByPk: jest.fn(),
     },
+    Payment: {},
   },
 };
 
@@ -35,7 +36,7 @@ describe('Order Controller', () => {
         userId: 1,
         productId: 1,
         quantity: 2,
-        totalPrice: 200,
+        total: 200,
       },
       params: { id: '1' },
       models: mockReq.models,
@@ -57,7 +58,7 @@ describe('Order Controller', () => {
       };
       req.models.Order.create.mockResolvedValue(mockOrder);
       req.models.User.findByPk.mockResolvedValue({ id: 1 });
-      req.models.Product.findByPk.mockResolvedValue({ id: 1 });
+      req.models.Product.findByPk.mockResolvedValue({ id: 1, price: 100 });
 
       // Execute
       await orderController.createOrder(req, res);
@@ -68,7 +69,7 @@ describe('Order Controller', () => {
           userId: 1,
           productId: 1,
           quantity: 2,
-          totalPrice: 200,
+          total: 200,
           status: 'pending',
         }),
       );
@@ -80,16 +81,13 @@ describe('Order Controller', () => {
       // Setup
       req.body = {};
 
+      const next = jest.fn();
+
       // Execute
-      await orderController.createOrder(req, res);
+      await orderController.createOrder(req, res, next);
 
       // Assert
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(String),
-        }),
-      );
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400 }));
     });
   });
 
@@ -122,7 +120,12 @@ describe('Order Controller', () => {
       await orderController.getOrderById(req, res);
 
       // Assert
-      expect(req.models.Order.findByPk).toHaveBeenCalledWith('1');
+      expect(req.models.Order.findByPk).toHaveBeenCalledWith(
+        '1',
+        expect.objectContaining({
+          include: expect.any(Array),
+        }),
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockOrder);
     });
@@ -130,17 +133,13 @@ describe('Order Controller', () => {
     it('should return 404 if order not found', async () => {
       // Setup
       req.models.Order.findByPk.mockResolvedValue(null);
+      const next = jest.fn();
 
       // Execute
-      await orderController.getOrderById(req, res);
+      await orderController.getOrderById(req, res, next);
 
       // Assert
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Order not found',
-        }),
-      );
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
     });
   });
 
@@ -150,10 +149,13 @@ describe('Order Controller', () => {
       const mockOrder = {
         id: 1,
         quantity: 3,
-        totalPrice: 300,
+        total: 300,
         status: 'pending',
       };
-      req.models.Order.findByPk.mockResolvedValue(mockOrder);
+      req.models.Order.findByPk.mockResolvedValue({
+        ...mockOrder,
+        product: { price: 100 },
+      });
       req.models.Order.update.mockResolvedValue([1]);
 
       // Execute
@@ -161,6 +163,12 @@ describe('Order Controller', () => {
 
       // Assert
       expect(req.models.Order.update).toHaveBeenCalled();
+      expect(req.models.Order.findByPk).toHaveBeenLastCalledWith(
+        '1',
+        expect.objectContaining({
+          include: [{ model: req.models.Product, as: 'product' }],
+        }),
+      );
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
@@ -168,43 +176,40 @@ describe('Order Controller', () => {
       // Setup
       req.models.Order.findByPk.mockResolvedValue(null);
 
+      const next = jest.fn();
+
       // Execute
-      await orderController.updateOrder(req, res);
+      await orderController.updateOrder(req, res, next);
 
       // Assert
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: 'Order not found',
-        }),
-      );
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
     });
   });
 
   describe('deleteOrder', () => {
     it('should delete order successfully', async () => {
       // Setup
+      req.models.Order.findByPk.mockResolvedValue({ id: 1, userId: 1, product: { price: 100 } });
       req.models.Order.destroy.mockResolvedValue(1);
 
       // Execute
       await orderController.deleteOrder(req, res);
 
       // Assert
-      expect(req.models.Order.destroy).toHaveBeenCalledWith({
-        where: { id: '1' },
-      });
+      expect(req.models.Order.destroy).toHaveBeenCalledWith({ where: { id: '1' } });
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('should return 404 if order not found', async () => {
       // Setup
-      req.models.Order.destroy.mockResolvedValue(0);
+      req.models.Order.findByPk.mockResolvedValue(null);
+      const next = jest.fn();
 
       // Execute
-      await orderController.deleteOrder(req, res);
+      await orderController.deleteOrder(req, res, next);
 
       // Assert
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
     });
   });
 });

@@ -16,6 +16,7 @@ process.env.JWT_SECRET = 'test-secret';
 process.env.JWT_EXPIRES_IN = '24h';
 
 const checkoutRoutes = require('../routes/checkoutRoutes');
+const { errorHandler } = require('../middleware/errorHandler');
 
 const app = express();
 app.use(express.json());
@@ -36,6 +37,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/checkout', checkoutRoutes);
+app.use(errorHandler);
 
 const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
   expiresIn: process.env.JWT_EXPIRES_IN,

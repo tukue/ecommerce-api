@@ -25,7 +25,7 @@ This document details specific technical improvements needed to make the ecommer
 
 ```
 routes/productRoutes.js
-routes/OrderRoutes.js
+routes/orderRoutes.js
 routes/paymentRoutes.js
 routes/checkoutRoutes.js
 ```
@@ -103,21 +103,21 @@ db_scripts.md
 
 **Severity**: MEDIUM-HIGH
 
-**Current State**:
+**Status**: COMPLETED
 
-| Controller          | Pattern                | Error Handling         | Uses Services        |
-| ------------------- | ---------------------- | ---------------------- | -------------------- |
-| `productController` | Function exports       | `asyncHandler` wrapper | Yes (productService) |
-| `authController`    | Object literal exports | Manual try/catch       | No                   |
-| `orderController`   | Object literal exports | Manual try/catch       | No                   |
-| `paymentController` | Object literal exports | Manual try/catch       | No                   |
+| Controller          | Pattern          | Error Handling         | Uses Services        |
+| ------------------- | ---------------- | ---------------------- | -------------------- |
+| `productController` | Function exports | `asyncHandler` wrapper | Yes (productService) |
+| `authController`    | Function exports | `asyncHandler` wrapper | Yes (authService)    |
+| `orderController`   | Function exports | `asyncHandler` wrapper | Yes (orderService)   |
+| `paymentController` | Function exports | `asyncHandler` wrapper | Yes (paymentService) |
 
-**Recommendation**: Standardize on the ProductController pattern across all controllers:
+**Implemented Changes**:
 
-1. Use function exports
-2. Use `asyncHandler` wrapper consistently
-3. Extract business logic to Service layer
-4. Extract data access to Repository layer
+1. Standardized controller exports on the ProductController pattern
+2. Removed manual controller `try/catch` blocks in favor of `asyncHandler`
+3. Extracted Orders, Payments, and Auth business logic to Service classes
+4. Extracted Orders, Payments, and Auth data access to Repository classes
 
 **Benefits**:
 
@@ -131,12 +131,12 @@ db_scripts.md
 
 **Severity**: LOW-MEDIUM
 
-**Current State**:
+**Status**: COMPLETED
 
-- `OrderRoutes.js` (PascalCase)
+- `orderRoutes.js`
 - `authRoutes.js`, `productRoutes.js`, `paymentRoutes.js`, `checkoutRoutes.js`, `healthRoutes.js` (camelCase)
 
-**Fix**: Rename `OrderRoutes.js` → `orderRoutes.js` and update all imports.
+**Fix Applied**: Renamed `OrderRoutes.js` → `orderRoutes.js` and updated imports.
 
 **Files affected by rename**:
 
@@ -149,15 +149,14 @@ db_scripts.md
 
 **Severity**: MEDIUM
 
-**Current State**:
+**Status**: COMPLETED
 
 - Order model uses field `total`
-- `orderController.createOrder` expects `totalPrice` in request body
-- This creates confusion and potential bugs
+- Order service writes `total`
+- Order totals are calculated server-side from product price and quantity
+- Client-supplied `total`/`totalPrice` values are ignored for order creation and quantity updates
 
-**Check**: `controllers/orderController.js` vs `models/order.js`
-
-**Fix**: Standardize on `total` throughout the codebase.
+**Fix Applied**: Standardized on `total` throughout runtime code.
 
 ---
 
@@ -397,14 +396,14 @@ npm install --save-dev eslint prettier eslint-config-prettier eslint-plugin-pret
 
 **Current Audit**:
 
-| Endpoint                | Request Body                             | Validation Status           |
-| ----------------------- | ---------------------------------------- | --------------------------- |
-| POST /api/auth/register | username, email, password                | Partial (model validations) |
-| POST /api/auth/login    | email, password                          | Basic                       |
-| POST /api/products      | name, price, stock                       | Basic in service            |
-| POST /api/orders        | userId, productId, quantity, totalPrice  | None (manual checks)        |
-| POST /api/payments      | userId, orderId, stripePaymentId, amount | None                        |
-| POST /api/checkout/...  | cart array                               | Basic checks                |
+| Endpoint                | Request Body                     | Validation Status           |
+| ----------------------- | -------------------------------- | --------------------------- |
+| POST /api/auth/register | username, email, password        | Partial (model validations) |
+| POST /api/auth/login    | email, password                  | Basic                       |
+| POST /api/products      | name, price, stock               | Basic in service            |
+| POST /api/orders        | productId, quantity              | Basic in service            |
+| POST /api/payments      | orderId, stripePaymentId, amount | Basic in service            |
+| POST /api/checkout/...  | cart array                       | Basic checks                |
 
 **Recommendation**: Use Zod/Joi schemas for ALL endpoints. Create a validation middleware.
 
@@ -441,9 +440,9 @@ const validate = (schema) => (req, res, next) => {
 
 **Severity**: LOW
 
-**Current State**: `views/products.ejs` exists but no route renders it. All product rendering uses `index.ejs`.
+**Status**: COMPLETED
 
-**Fix**: Delete `views/products.ejs` or add a route that uses it.
+**Fix Applied**: Deleted `views/products.ejs`; all product rendering continues to use existing routes/views.
 
 ---
 
@@ -664,12 +663,13 @@ setTimeout(() => {
 
 ### Phase 3: Architecture Consistency (Week 3)
 
-| Priority | Item                                                | Effort |
-| -------- | --------------------------------------------------- | ------ |
-| 9        | Standardize controller patterns                     | 8h     |
-| 10       | Add service/repo layers to orders/payments          | 8h     |
-| 11       | Fix file naming inconsistencies                     | 2h     |
-| 12       | Clean up unused files (products.ejs, swagger route) | 2h     |
+| Priority | Item                                            | Effort |
+| -------- | ----------------------------------------------- | ------ |
+| 9        | Standardize controller patterns                 | Done   |
+| 10       | Add service/repo layers to orders/payments/auth | Done   |
+| 11       | Fix file naming inconsistencies                 | Done   |
+| 12       | Clean up unused files (`products.ejs`)          | Done   |
+| 12a      | Remove/refactor Swagger route mixing            | 2h     |
 
 ### Phase 4: Testing & Quality (Week 4)
 
@@ -703,8 +703,8 @@ Before this API can be considered production-ready:
    - [ ] Rate limiting on all sensitive endpoints
 
 2. **Architecture**:
-   - [ ] All controllers use consistent asyncHandler pattern
-   - [ ] Services and repositories for all domains
+   - [x] All controllers use consistent asyncHandler pattern
+   - [x] Services and repositories for all primary domains
    - [ ] Database migrations instead of sync
    - [ ] No schema auto-modification on startup
 
