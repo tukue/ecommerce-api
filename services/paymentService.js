@@ -19,8 +19,9 @@ class PaymentService {
       );
     }
 
-    if (Number(amount) < 0) {
-      throw new HttpError(400, 'amount must be non-negative', 'ValidationError');
+    const paymentAmount = Number(amount);
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+      throw new HttpError(400, 'amount must be positive', 'ValidationError');
     }
 
     const order = await this.repository.findOrderById(orderId);

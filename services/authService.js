@@ -1,9 +1,9 @@
-const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const HttpError = require('../utils/httpError');
 const AuthRepository = require('../repositories/authRepository');
 
+const MIN_JWT_SECRET_LENGTH = 32;
 const PASSWORD_REQUIREMENTS_MESSAGE =
   'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.';
 
@@ -86,25 +86,26 @@ class AuthService {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date(Date.now() + 3600000);
-    const hashedToken = await bcrypt.hash(resetToken, 12);
 
     await user.update({
-      resetToken: hashedToken,
+      resetToken: this.hashResetToken(resetToken),
       resetTokenExpiry,
     });
 
     return {
       message: 'Password reset token generated',
-      resetToken,
     };
   }
 
   async resetPassword(input) {
     const { token, newPassword } = input;
+    if (!token) {
+      throw new HttpError(400, 'Reset token is required', 'ValidationError');
+    }
+
     this.assertStrongPassword(newPassword);
 
-    const users = await this.repository.findUsersWithActiveResetTokens();
-    const user = await this.findUserByResetToken(users, token);
+    const user = await this.repository.findUserByActiveResetToken(this.hashResetToken(token));
 
     if (!user) {
       throw new HttpError(400, 'Invalid or expired reset token', 'ValidationError');
@@ -119,14 +120,8 @@ class AuthService {
     return { message: 'Password reset successful' };
   }
 
-  async findUserByResetToken(users, token) {
-    for (const candidate of users) {
-      if (await bcrypt.compare(token, candidate.resetToken)) {
-        return candidate;
-      }
-    }
-
-    return null;
+  hashResetToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   assertStrongPassword(password) {
@@ -136,7 +131,16 @@ class AuthService {
   }
 
   signToken(user) {
-    return jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable is not configured');
+    }
+
+    if (process.env.NODE_ENV !== 'test' && jwtSecret.length < MIN_JWT_SECRET_LENGTH) {
+      throw new Error(`JWT_SECRET must be at least ${MIN_JWT_SECRET_LENGTH} characters long`);
+    }
+
+    return jwt.sign({ userId: user.id }, jwtSecret, {
       expiresIn: process.env.JWT_EXPIRES_IN,
     });
   }

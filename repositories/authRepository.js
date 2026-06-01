@@ -25,14 +25,12 @@ class AuthRepository {
     return this.models.User.create(payload);
   }
 
-  findUsersWithActiveResetTokens(now = new Date()) {
-    return this.models.User.findAll({
+  findUserByActiveResetToken(resetToken, now = new Date()) {
+    return this.models.User.findOne({
       where: {
+        resetToken,
         resetTokenExpiry: {
           [Op.gt]: now,
-        },
-        resetToken: {
-          [Op.ne]: null,
         },
       },
     });

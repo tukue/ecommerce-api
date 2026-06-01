@@ -163,6 +163,12 @@ describe('Order Controller', () => {
 
       // Assert
       expect(req.models.Order.update).toHaveBeenCalled();
+      expect(req.models.Order.findByPk).toHaveBeenLastCalledWith(
+        '1',
+        expect.objectContaining({
+          include: [{ model: req.models.Product, as: 'product' }],
+        }),
+      );
       expect(res.status).toHaveBeenCalledWith(200);
     });
 

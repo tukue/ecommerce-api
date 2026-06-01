@@ -8,7 +8,7 @@ const ProductModel = require('../models/product');
 const authRoutes = require('../routes/authRoutes');
 const { errorHandler } = require('../middleware/errorHandler');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 // Mock environment variables
 process.env.JWT_SECRET = 'test-secret';
@@ -41,6 +41,8 @@ app.use((req, res, next) => {
 });
 app.use('/api/auth', authRoutes);
 app.use(errorHandler);
+
+const hashResetToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 describe('Auth Controller', () => {
   beforeAll(async () => {
@@ -196,7 +198,7 @@ describe('Auth Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.message).toBe('Password reset token generated');
-      expect(res.body.resetToken).toBeDefined();
+      expect(res.body.resetToken).toBeUndefined();
     });
 
     it('should reset password with valid token', async () => {
@@ -211,9 +213,8 @@ describe('Auth Controller', () => {
 
       // Generate reset token
       const resetToken = 'validtoken123';
-      const hashedToken = await bcrypt.hash(resetToken, 12);
       await user.update({
-        resetToken: hashedToken,
+        resetToken: hashResetToken(resetToken),
         resetTokenExpiry: new Date(Date.now() + 3600000),
       });
 
@@ -242,9 +243,8 @@ describe('Auth Controller', () => {
       });
 
       const resetToken = 'validtoken123';
-      const hashedToken = await bcrypt.hash(resetToken, 12);
       await user.update({
-        resetToken: hashedToken,
+        resetToken: hashResetToken(resetToken),
         resetTokenExpiry: new Date(Date.now() + 3600000),
       });
 
@@ -272,11 +272,11 @@ describe('Auth Controller', () => {
       const resetToken1 = 'validtoken-user-1';
       const resetToken2 = 'validtoken-user-2';
       await user1.update({
-        resetToken: await bcrypt.hash(resetToken1, 12),
+        resetToken: hashResetToken(resetToken1),
         resetTokenExpiry: new Date(Date.now() + 3600000),
       });
       await user2.update({
-        resetToken: await bcrypt.hash(resetToken2, 12),
+        resetToken: hashResetToken(resetToken2),
         resetTokenExpiry: new Date(Date.now() + 3600000),
       });
 

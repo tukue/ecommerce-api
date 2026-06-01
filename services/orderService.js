@@ -104,7 +104,9 @@ class OrderService {
     }
 
     await this.repository.updateById(id, updateData);
-    const updatedOrder = await this.repository.findById(id);
+    const updatedOrder = await this.repository.findById(id, {
+      include: [{ model: this.models.Product, as: 'product' }],
+    });
     return { message: 'Order updated successfully', order: updatedOrder };
   }
 
