@@ -6,11 +6,14 @@ const rateLimitMessage = (message) => ({
   message,
 });
 
+const skipRateLimitInTests = () => process.env.NODE_ENV === 'test';
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipRateLimitInTests,
   message: rateLimitMessage('Too many requests, please try again later'),
 });
 
@@ -19,7 +22,7 @@ const mutatingApiLimiter = rateLimit({
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method),
+  skip: (req) => skipRateLimitInTests() || !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method),
   message: rateLimitMessage('Too many write requests, please try again later'),
 });
 
@@ -28,6 +31,7 @@ const authSensitiveLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipRateLimitInTests,
   message: rateLimitMessage('Too many attempts, please try again after 15 minutes'),
 });
 
@@ -36,6 +40,7 @@ const loginLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipRateLimitInTests,
   message: { message: 'Too many login attempts, please try again after 15 minutes' },
 });
 
