@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { DataTypes } = require('sequelize');
 
 const sequelize = require('./config/db');
@@ -14,6 +15,7 @@ const requestContext = require('./middleware/requestContext');
 const requestLogger = require('./middleware/requestLogger');
 const telemetryMiddleware = require('./middleware/telemetry');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
+const { apiLimiter, mutatingApiLimiter } = require('./middleware/authMiddleWare');
 
 const orderRoutes = require('./routes/orderRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -36,6 +38,19 @@ Product.associate({ Order });
 const app = express();
 
 app.use(cors());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://js.stripe.com'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        frameSrc: ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com'],
+      },
+    },
+  }),
+);
 app.use(express.json());
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
@@ -83,6 +98,8 @@ app.get('/cart', (req, res) =>
 );
 
 app.use('/health', healthRoutes);
+app.use('/api', apiLimiter);
+app.use('/api', mutatingApiLimiter);
 app.use('/api', orderRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);

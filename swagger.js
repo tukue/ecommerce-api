@@ -2,7 +2,6 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const express = require('express');
 const router = express.Router();
-const authController = require('./controllers/authController'); // Import the authController
 
 const options = {
   definition: {
@@ -39,32 +38,5 @@ const options = {
 const specs = swaggerJsdoc(options);
 
 router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-
-/**
- * @swagger
- * /api/auth/request-reset:
- *   post:
- *     summary: Request password reset
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *     responses:
- *       200:
- *         description: Reset token generated
- *       404:
- *         description: User not found
- *       500:
- *         description: Internal server error
- */
-router.post('/request-reset', authController.requestPasswordReset);
 
 module.exports = router;

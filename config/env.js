@@ -25,4 +25,5 @@ module.exports = {
   stripePublicKey: process.env.STRIPE_PUBLIC_KEY || '',
   otelEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://jaeger:4318',
   serviceName: process.env.OTEL_SERVICE_NAME || 'ecommerce-api',
+  shutdownTimeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000),
 };

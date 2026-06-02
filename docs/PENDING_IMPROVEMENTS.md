@@ -6,11 +6,11 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 
 ## Security (Score: 6/10)
 
-- [ ] **Helmet security headers** — add `helmet` middleware for XSS/clickjacking/HSTS protection
+- [x] **Helmet security headers** — add `helmet` middleware for XSS/clickjacking/HSTS protection
 - [ ] **Input validation library** — replace manual validation with Zod/Joi schemas on every endpoint
 - [ ] **HTTP-only cookies** — move JWT from `localStorage` to `httpOnly`, `secure`, `sameSite` cookies
-- [ ] **Rate limiting on all endpoints** — currently only login has it; add to register, password reset, and all mutating endpoints
-- [ ] **Sanitize error messages** — ensure no internal details leak in production error responses
+- [x] **Rate limiting on all endpoints** — currently only login has it; add to register, password reset, and all mutating endpoints
+- [x] **Sanitize error messages** — ensure no internal details leak in production error responses
 
 ---
 
@@ -28,7 +28,7 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 
 - [ ] **Database migrations** — replace `sequelize.sync({ alter: true })` with proper migration system (`sequelize-cli`)
 - [ ] **Pagination** — add `page`/`limit` query params + response metadata to all list endpoints (products, orders, payments)
-- [ ] **Graceful shutdown timeout** — add forced shutdown after a timeout (e.g., 10s) to prevent hanging
+- [x] **Graceful shutdown timeout** — add forced shutdown after a timeout (e.g., 10s) to prevent hanging
 - [ ] **Environment-specific config** — separate configs for development, test, staging, production (pool sizes, logging, etc.)
 
 ---
@@ -36,8 +36,8 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 ## Tooling & Code Quality (Score: 7/10)
 
 - [x] **ESLint + Prettier** — add linting and formatting with CI enforcement
-- [ ] **Fix `.gitignore`** — stop ignoring `README.md` and `db_scripts.md`
-- [ ] **Remove duplicate route** — move `/request-reset` POST from `swagger.js` into `routes/authRoutes.js`
+- [x] **Fix `.gitignore`** — stop ignoring `README.md` and `db_scripts.md`
+- [x] **Remove duplicate route** — move `/request-reset` POST from `swagger.js` into `routes/authRoutes.js`
 
 ---
 
@@ -60,12 +60,12 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 
 ## Quick Wins (< 1 hour each)
 
-1. Fix `.gitignore` to allow `README.md` and docs
+1. ~~Fix `.gitignore` to allow `README.md` and docs~~
 2. ~~Rename `OrderRoutes.js` → `orderRoutes.js`~~
 3. ~~Delete unused `views/products.ejs`~~
-4. Move `/request-reset` route from `swagger.js` to `authRoutes.js`
-5. Add forced shutdown timeout in `server.js`
-6. Add `helmet` middleware
+4. ~~Move `/request-reset` route from `swagger.js` to `authRoutes.js`~~
+5. ~~Add forced shutdown timeout in `server.js`~~
+6. ~~Add `helmet` middleware~~
 
 ---
 
