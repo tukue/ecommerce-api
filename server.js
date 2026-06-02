@@ -17,14 +17,26 @@ async function startServer() {
 async function shutdown(signal) {
   logger.info('shutdown_started', { signal });
 
-  if (server) {
-    await new Promise((resolve) => server.close(resolve));
-  }
+  const timeout = setTimeout(() => {
+    logger.error('shutdown_forced', { signal, timeoutMs: env.shutdownTimeoutMs });
+    process.exit(1);
+  }, env.shutdownTimeoutMs);
 
-  await sequelize.close();
-  await stopTracing();
-  logger.info('shutdown_completed');
-  process.exit(0);
+  try {
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+
+    await sequelize.close();
+    await stopTracing();
+    clearTimeout(timeout);
+    logger.info('shutdown_completed');
+    process.exit(0);
+  } catch (error) {
+    clearTimeout(timeout);
+    logger.error('shutdown_failed', { error: error.message, stack: error.stack });
+    process.exit(1);
+  }
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));

@@ -1,9 +1,41 @@
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 
+const rateLimitMessage = (message) => ({
+  error: 'RateLimitExceeded',
+  message,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage('Too many requests, please try again later'),
+});
+
+const mutatingApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method),
+  message: rateLimitMessage('Too many write requests, please try again later'),
+});
+
+const authSensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage('Too many attempts, please try again after 15 minutes'),
+});
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { message: 'Too many login attempts, please try again after 15 minutes' },
 });
 
@@ -64,4 +96,12 @@ const optionalAuthMiddleware = async (req, res, next) => {
   next();
 };
 
-module.exports = { authMiddleware, loginLimiter, adminMiddleware, optionalAuthMiddleware };
+module.exports = {
+  authMiddleware,
+  loginLimiter,
+  apiLimiter,
+  mutatingApiLimiter,
+  authSensitiveLimiter,
+  adminMiddleware,
+  optionalAuthMiddleware,
+};

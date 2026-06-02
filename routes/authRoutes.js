@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { authMiddleware, loginLimiter } = require('../middleware/authMiddleWare');
+const {
+  authMiddleware,
+  loginLimiter,
+  authSensitiveLimiter,
+} = require('../middleware/authMiddleWare');
 
 /**
  * @swagger
@@ -41,7 +45,7 @@ const { authMiddleware, loginLimiter } = require('../middleware/authMiddleWare')
  *       500:
  *         description: Internal server error
  */
-router.post('/register', authController.register);
+router.post('/register', authSensitiveLimiter, authController.register);
 
 /**
  * @swagger
@@ -118,7 +122,7 @@ router.get('/profile', authMiddleware, authController.getProfile);
  *       500:
  *         description: Internal server error
  */
-router.post('/request-reset', authController.requestPasswordReset);
+router.post('/request-reset', authSensitiveLimiter, authController.requestPasswordReset);
 
 /**
  * @swagger
@@ -148,6 +152,6 @@ router.post('/request-reset', authController.requestPasswordReset);
  *       500:
  *         description: Internal server error
  */
-router.post('/reset', authController.resetPassword);
+router.post('/reset', authSensitiveLimiter, authController.resetPassword);
 
 module.exports = router;
