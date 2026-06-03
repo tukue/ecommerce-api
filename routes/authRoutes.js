@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const validate = require('../middleware/validate');
+const {
+  register: registerSchema,
+  login: loginSchema,
+  requestPasswordReset: requestPasswordResetSchema,
+  resetPassword: resetPasswordSchema,
+} = require('../utils/validators');
 const {
   authMiddleware,
   loginLimiter,
@@ -45,7 +52,12 @@ const {
  *       500:
  *         description: Internal server error
  */
-router.post('/register', authSensitiveLimiter, authController.register);
+router.post(
+  '/register',
+  authSensitiveLimiter,
+  validate({ body: registerSchema }),
+  authController.register,
+);
 
 /**
  * @swagger
@@ -75,7 +87,7 @@ router.post('/register', authSensitiveLimiter, authController.register);
  *       500:
  *         description: Internal server error
  */
-router.post('/login', loginLimiter, authController.login);
+router.post('/login', loginLimiter, validate({ body: loginSchema }), authController.login);
 
 /**
  * @swagger
@@ -122,7 +134,12 @@ router.get('/profile', authMiddleware, authController.getProfile);
  *       500:
  *         description: Internal server error
  */
-router.post('/request-reset', authSensitiveLimiter, authController.requestPasswordReset);
+router.post(
+  '/request-reset',
+  authSensitiveLimiter,
+  validate({ body: requestPasswordResetSchema }),
+  authController.requestPasswordReset,
+);
 
 /**
  * @swagger
@@ -152,6 +169,11 @@ router.post('/request-reset', authSensitiveLimiter, authController.requestPasswo
  *       500:
  *         description: Internal server error
  */
-router.post('/reset', authSensitiveLimiter, authController.resetPassword);
+router.post(
+  '/reset',
+  authSensitiveLimiter,
+  validate({ body: resetPasswordSchema }),
+  authController.resetPassword,
+);
 
 module.exports = router;

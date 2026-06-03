@@ -7,7 +7,20 @@ let server;
 
 async function startServer() {
   await startTracing();
-  await sequelize.sync({ alter: env.nodeEnv !== 'production' });
+
+  await sequelize.authenticate();
+  logger.info('database_connected', { environment: env.nodeEnv });
+
+  if (env.nodeEnv !== 'development') {
+    try {
+      await sequelize.query('SELECT 1 FROM "SequelizeMeta" LIMIT 1');
+    } catch {
+      logger.error('migrations_not_run', {
+        error: 'Database schema not initialized. Run "npm run migrate" before starting the server.',
+      });
+      throw new Error('Database migrations required. Run: npm run migrate');
+    }
+  }
 
   server = app.listen(env.port, '0.0.0.0', () => {
     logger.info('server_started', { port: env.port, environment: env.nodeEnv });

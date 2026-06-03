@@ -63,9 +63,9 @@ class AuthService {
         {
           model: this.models.Order,
           as: 'orders',
-          attributes: ['id', 'total', 'status', 'createdAt'],
+          attributes: ['id', 'total', 'status', 'created_at'],
           limit: 5,
-          order: [['createdAt', 'DESC']],
+          order: [['created_at', 'DESC']],
         },
       ],
       attributes: { exclude: ['password'] },

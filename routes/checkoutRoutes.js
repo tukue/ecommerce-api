@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/authMiddleWare');
+const validate = require('../middleware/validate');
+const { createCheckoutSession } = require('../utils/validators');
 const { Op } = require('sequelize');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const asyncHandler = require('../utils/asyncHandler');
@@ -76,6 +78,11 @@ const checkoutController = {
   }),
 };
 
-router.post('/create-checkout-session', authMiddleware, checkoutController.createCheckoutSession);
+router.post(
+  '/create-checkout-session',
+  authMiddleware,
+  validate({ body: createCheckoutSession }),
+  checkoutController.createCheckoutSession,
+);
 
 module.exports = router;
