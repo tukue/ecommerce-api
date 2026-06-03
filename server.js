@@ -7,7 +7,8 @@ let server;
 
 async function startServer() {
   await startTracing();
-  await sequelize.sync({ alter: env.nodeEnv !== 'production' });
+  await sequelize.authenticate();
+  logger.info('database_connected', { environment: env.nodeEnv });
 
   server = app.listen(env.port, '0.0.0.0', () => {
     logger.info('server_started', { port: env.port, environment: env.nodeEnv });

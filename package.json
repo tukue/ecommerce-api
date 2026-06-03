@@ -7,6 +7,9 @@
     "test": "jest",
     "test:backend": "jest --config jest.backend.config.js",
     "test:frontend": "jest --config jest.frontend.config.js",
+    "migrate": "npx sequelize-cli db:migrate",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "migrate:create": "npx sequelize-cli migration:generate --name",
     "generate-load": "node scripts/generate_load.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -44,7 +47,8 @@
     "sequelize": "^6.37.6",
     "stripe": "^17.7.0",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -55,6 +59,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "jest-fetch-mock": "^3.0.3",
     "prettier": "^3.8.3",
+    "sequelize-cli": "^6.6.5",
     "sqlite3": "^5.1.7",
     "supertest": "^7.0.0"
   }
