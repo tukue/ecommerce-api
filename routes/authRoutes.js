@@ -52,7 +52,12 @@ const {
  *       500:
  *         description: Internal server error
  */
-router.post('/register', authSensitiveLimiter, validate({ body: registerSchema }), authController.register);
+router.post(
+  '/register',
+  authSensitiveLimiter,
+  validate({ body: registerSchema }),
+  authController.register,
+);
 
 /**
  * @swagger
@@ -129,7 +134,12 @@ router.get('/profile', authMiddleware, authController.getProfile);
  *       500:
  *         description: Internal server error
  */
-router.post('/request-reset', authSensitiveLimiter, validate({ body: requestPasswordResetSchema }), authController.requestPasswordReset);
+router.post(
+  '/request-reset',
+  authSensitiveLimiter,
+  validate({ body: requestPasswordResetSchema }),
+  authController.requestPasswordReset,
+);
 
 /**
  * @swagger
@@ -159,6 +169,11 @@ router.post('/request-reset', authSensitiveLimiter, validate({ body: requestPass
  *       500:
  *         description: Internal server error
  */
-router.post('/reset', authSensitiveLimiter, validate({ body: resetPasswordSchema }), authController.resetPassword);
+router.post(
+  '/reset',
+  authSensitiveLimiter,
+  validate({ body: resetPasswordSchema }),
+  authController.resetPassword,
+);
 
 module.exports = router;

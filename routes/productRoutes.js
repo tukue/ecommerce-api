@@ -6,11 +6,23 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleWar
 
 const router = express.Router();
 
-router.post('/', authMiddleware, adminMiddleware, validate({ body: createProduct }), productController.createProduct);
+router.post(
+  '/',
+  authMiddleware,
+  adminMiddleware,
+  validate({ body: createProduct }),
+  productController.createProduct,
+);
 router.get('/search', validate({ query: searchProducts }), productController.searchProductsByName);
 router.get('/', productController.getAllProducts);
 router.get('/:id', productController.getProductById);
-router.put('/:id', authMiddleware, adminMiddleware, validate({ body: updateProduct }), productController.updateProduct);
+router.put(
+  '/:id',
+  authMiddleware,
+  adminMiddleware,
+  validate({ body: updateProduct }),
+  productController.updateProduct,
+);
 router.delete('/:id', authMiddleware, adminMiddleware, productController.deleteProduct);
 
 module.exports = router;
