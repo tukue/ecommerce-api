@@ -64,17 +64,21 @@ const createPayment = z.object({
 const createCheckoutSession = z.object({
   cart: z
     .array(
-      z.object({
-        productId: z.union([z.number(), z.string()]).optional(),
-        id: z.union([z.number(), z.string()]).optional(),
-        quantity: z.union([z.number(), z.string()]).refine(
-          (val) => {
-            const n = Number(val);
-            return Number.isInteger(n) && n > 0;
-          },
-          { message: 'quantity must be a positive integer' },
-        ),
-      }),
+      z
+        .object({
+          productId: z.union([z.number(), z.string()]).optional(),
+          id: z.union([z.number(), z.string()]).optional(),
+          quantity: z.union([z.number(), z.string()]).refine(
+            (val) => {
+              const n = Number(val);
+              return Number.isInteger(n) && n > 0;
+            },
+            { message: 'quantity must be a positive integer' },
+          ),
+        })
+        .refine((item) => item.productId !== undefined || item.id !== undefined, {
+          message: 'Each cart item must include productId or id',
+        }),
     )
     .min(1, 'cart must be a non-empty array'),
 });

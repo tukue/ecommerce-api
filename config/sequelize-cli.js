@@ -7,8 +7,8 @@ module.exports = {
     logging: true,
   },
   test: {
-    url: process.env.DATABASE_URL || 'sqlite::memory:',
     dialect: 'sqlite',
+    storage: ':memory:',
     logging: false,
   },
   production: {
