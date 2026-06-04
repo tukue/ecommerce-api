@@ -56,6 +56,15 @@ module.exports = (sequelize, DataTypes) => {
           isIn: [['user', 'admin']],
         },
       },
+      auth0Id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+        field: 'auth0_id',
+        validate: {
+          len: [1, 255],
+        },
+      },
     },
     {
       sequelize,

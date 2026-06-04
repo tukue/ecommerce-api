@@ -79,15 +79,31 @@ const authMiddleware = async (req, res, next) => {
     // If express-openid-connect session exists, trust it and map to local user
     if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
       const oidcUser = req.oidc.user || {};
+      const auth0Id = oidcUser.sub;
       const email = oidcUser.email;
-      if (!email) return res.status(401).json({ message: 'Authenticated session missing email' });
+      if (!auth0Id && !email) return res.status(401).json({ message: 'Authenticated session missing identity' });
 
-      let user = await req.models.User.findOne({ where: { email } });
-      if (!user) {
+      // Prefer mapping by Auth0 ID
+      let user = null;
+      if (auth0Id) {
+        user = await req.models.User.findOne({ where: { auth0Id } });
+      }
+
+      // Fallback to email mapping
+      if (!user && email) {
+        user = await req.models.User.findOne({ where: { email } });
+      }
+
+      // Create new local user and persist auth0 id if none exists
+      if (!user && email) {
         const usernameBase = oidcUser.name ? oidcUser.name.replace(/\s+/g, '_').toLowerCase() : email.split('@')[0];
         const username = usernameBase.slice(0, 30);
         const randomPassword = crypto.randomBytes(24).toString('hex');
-        user = await req.models.User.create({ username, email, password: randomPassword });
+        user = await req.models.User.create({ username, email, password: randomPassword, auth0Id });
+      }
+
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
       }
 
       req.user = user;
@@ -119,18 +135,23 @@ const authMiddleware = async (req, res, next) => {
         algorithms: ['RS256'],
       });
 
-      // Auth0 tokens usually contain email; map to local user by email
+      // Prefer mapping by Auth0 `sub` claim
       let user = null;
-      if (decoded.email) {
+      if (decoded.sub) {
+        user = await req.models.User.findOne({ where: { auth0Id: decoded.sub } });
+      }
+
+      // Fallback to email mapping
+      if (!user && decoded.email) {
         user = await req.models.User.findOne({ where: { email: decoded.email } });
       }
 
-      // If user doesn't exist, create a lightweight account (random password)
+      // If user doesn't exist, create a lightweight account (random password) and persist auth0 id
       if (!user && decoded.email) {
         const usernameBase = decoded.name ? decoded.name.replace(/\s+/g, '_').toLowerCase() : decoded.email.split('@')[0];
         const username = usernameBase.slice(0, 30);
         const randomPassword = crypto.randomBytes(24).toString('hex');
-        user = await req.models.User.create({ username, email: decoded.email, password: randomPassword });
+        user = await req.models.User.create({ username, email: decoded.email, password: randomPassword, auth0Id: decoded.sub });
       }
 
       if (!user) {
@@ -199,10 +220,16 @@ const optionalAuthMiddleware = async (req, res, next) => {
               issuer: auth0Issuer,
               algorithms: ['RS256'],
             });
-            if (decoded.email) {
-              const user = await req.models.User.findOne({ where: { email: decoded.email } });
-              if (user) req.user = user;
+            // Prefer auth0 sub mapping
+            let user = null;
+            if (decoded.sub) {
+              user = await req.models.User.findOne({ where: { auth0Id: decoded.sub } });
             }
+            if (!user && decoded.email) {
+              user = await req.models.User.findOne({ where: { email: decoded.email } });
+            }
+            if (user) req.user = user;
+          }
           }
         } catch (e) {
           // ignore invalid token
