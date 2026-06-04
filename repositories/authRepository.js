@@ -35,6 +35,17 @@ class AuthRepository {
       },
     });
   }
+
+  // Auth0 specific helpers
+  findByAuth0Id(auth0Id) {
+    if (!auth0Id) return null;
+    return this.models.User.findOne({ where: { auth0Id } });
+  }
+
+  linkAuth0Id(userId, auth0Id) {
+    return this.models.User.update({ auth0Id }, { where: { id: userId } });
+  }
 }
+
 
 module.exports = AuthRepository;
