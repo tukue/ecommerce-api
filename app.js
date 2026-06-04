@@ -65,6 +65,10 @@ app.use(telemetryMiddleware());
 
 // Setup Auth0 OIDC if enabled
 if (env.auth0 && env.auth0.enabled) {
+  // initialize centralized auth module with issuer
+  const authModule = require('./services/auth');
+  authModule.init(env.auth0.issuer);
+
   app.use(
     auth({
       authRequired: false,

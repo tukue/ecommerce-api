@@ -51,12 +51,10 @@ const auth0Domain = process.env.AUTH0_DOMAIN || '';
 const auth0Audience = process.env.AUTH0_AUDIENCE || '';
 const auth0Issuer = process.env.AUTH0_ISSUER || (auth0Domain ? `https://${auth0Domain}/` : '');
 
-// Auth provider (JWKS/token verification) extracted to services
-const authProvider = require('../services/authProvider');
+// Unified auth module
+const auth = require('../services/auth');
 
-if (auth0Domain) {
-  authProvider.init(auth0Issuer);
-}
+// auth.init will be called from app startup when available
 
 
 const authMiddleware = async (req, res, next) => {
@@ -64,9 +62,7 @@ const authMiddleware = async (req, res, next) => {
     // If express-openid-connect session exists, trust it and map to local user
     if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
       const oidcUser = req.oidc.user || {};
-      const AuthService = require('../services/authService');
-      const authService = new AuthService(req.models);
-      const user = await authService.provisionUserFromOidc(oidcUser);
+      const user = await auth.provisionFromOidc(req.models, oidcUser);
       if (!user) return res.status(401).json({ message: 'User not found' });
       req.user = user;
       return next();
@@ -88,9 +84,9 @@ const authMiddleware = async (req, res, next) => {
         return res.status(401).json({ message: 'Invalid token header' });
       }
 
-      decoded = await authProvider.verifyAuth0Token(token, { audience: auth0Audience, issuer: auth0Issuer });
-      const authService = new (require('../services/authService'))(req.models);
-      const user = await authService.provisionUserFromToken(decoded);
+      // verify token and provision user via unified auth module
+      const decoded = await auth.verifyToken(token, { audience: auth0Audience, issuer: auth0Issuer });
+      const user = await auth.provisionFromToken(req.models, decoded);
       if (!user) return res.status(401).json({ message: 'User not found' });
       req.user = user;
       return next();
