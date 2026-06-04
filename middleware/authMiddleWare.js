@@ -51,28 +51,13 @@ const auth0Domain = process.env.AUTH0_DOMAIN || '';
 const auth0Audience = process.env.AUTH0_AUDIENCE || '';
 const auth0Issuer = process.env.AUTH0_ISSUER || (auth0Domain ? `https://${auth0Domain}/` : '');
 
-// Allow OIDC middleware to set req.oidc when express-openid-connect is used
-const jwksClient = auth0Domain
-  ? jwksRsa({
-      jwksUri: `${auth0Issuer.replace(/\/$/, '')}.well-known/jwks.json`,
-      cache: true,
-      rateLimit: true,
-    })
-  : null;
+// Auth provider (JWKS/token verification) extracted to services
+const authProvider = require('../services/authProvider');
 
-const getSigningKey = (kid) =>
-  new Promise((resolve, reject) => {
-    if (!jwksClient) return reject(new Error('JWKS client not configured'));
-    jwksClient.getSigningKey(kid, (err, key) => {
-      if (err) return reject(err);
-      try {
-        const pubKey = key.getPublicKey();
-        resolve(pubKey);
-      } catch (e) {
-        reject(e);
-      }
-    });
-  });
+if (auth0Domain) {
+  authProvider.init(auth0Issuer);
+}
+
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -126,14 +111,7 @@ const authMiddleware = async (req, res, next) => {
         return res.status(401).json({ message: 'Invalid token header' });
       }
 
-      const kid = decodedHeader.header.kid;
-      const publicKey = await getSigningKey(kid);
-
-      decoded = jwt.verify(token, publicKey, {
-        audience: auth0Audience,
-        issuer: auth0Issuer,
-        algorithms: ['RS256'],
-      });
+      decoded = await authProvider.verifyAuth0Token(token, { audience: auth0Audience, issuer: auth0Issuer });
 
       // Prefer mapping by Auth0 `sub` claim
       let user = null;
@@ -214,12 +192,7 @@ const optionalAuthMiddleware = async (req, res, next) => {
         try {
           const decodedHeader = jwt.decode(token, { complete: true });
           if (decodedHeader && decodedHeader.header && decodedHeader.header.kid) {
-            const publicKey = await getSigningKey(decodedHeader.header.kid);
-            const decoded = jwt.verify(token, publicKey, {
-              audience: auth0Audience,
-              issuer: auth0Issuer,
-              algorithms: ['RS256'],
-            });
+            const decoded = await authProvider.verifyAuth0Token(token, { audience: auth0Audience, issuer: auth0Issuer });
             // Prefer auth0 sub mapping
             let user = null;
             if (decoded.sub) {
