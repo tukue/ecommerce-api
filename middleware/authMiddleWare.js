@@ -46,10 +46,10 @@ const loginLimiter = rateLimit({
   message: { message: 'Too many login attempts, please try again after 15 minutes' },
 });
 
-const auth0Domain = process.env.AUTH0_DOMAIN || '';
-const auth0Audience = process.env.AUTH0_AUDIENCE || '';
-const auth0Issuer = process.env.AUTH0_ISSUER || (auth0Domain ? `https://${auth0Domain}/` : '');
-const isAuth0Enabled = Boolean(auth0Domain && auth0Audience);
+const authDomain = process.env.AUTH_DOMAIN || '';
+const authAudience = process.env.AUTH_AUDIENCE || '';
+const authIssuer = process.env.AUTH_ISSUER || (authDomain ? `https://${authDomain}/` : '');
+const isExternalAuthEnabled = Boolean(authDomain && authAudience);
 
 const getBearerToken = (req) => {
   const authHeader = req.headers.authorization;
@@ -70,10 +70,10 @@ const authenticateLocalToken = async (req, token) => {
   return user;
 };
 
-const authenticateAuth0Token = async (req, token) => {
-  const decoded = await authProvider.verifyAuth0Token(token, {
-    audience: auth0Audience,
-    issuer: auth0Issuer,
+const authenticateExternalToken = async (req, token) => {
+  const decoded = await authProvider.verifyToken(token, {
+    audience: authAudience,
+    issuer: authIssuer,
   });
   const authService = new AuthService(req.models);
   return authService.provisionUserFromToken(decoded);
@@ -104,12 +104,12 @@ const authMiddleware = async (req, res, next) => {
       req.user = user;
       return next();
     } catch (error) {
-      if (!isAuth0Enabled || error.name === 'TokenExpiredError') {
+      if (!isExternalAuthEnabled || error.name === 'TokenExpiredError') {
         throw error;
       }
     }
 
-    const user = await authenticateAuth0Token(req, token);
+    const user = await authenticateExternalToken(req, token);
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -162,9 +162,9 @@ const optionalAuthMiddleware = async (req, res, next) => {
         // ignore invalid token
       }
 
-      if (isAuth0Enabled) {
+      if (isExternalAuthEnabled) {
         try {
-          const user = await authenticateAuth0Token(req, token);
+          const user = await authenticateExternalToken(req, token);
           if (user) {
             req.user = user;
           }

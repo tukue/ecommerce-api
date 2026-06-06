@@ -2,8 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // Add a nullable unique column to store the Auth0 user id (sub)
-    await queryInterface.addColumn('users', 'auth0_id', {
+    await queryInterface.addColumn('users', 'auth_subject', {
       type: Sequelize.STRING,
       allowNull: true,
       unique: true,
@@ -11,6 +10,6 @@ module.exports = {
   },
 
   down: async (queryInterface, _Sequelize) => {
-    await queryInterface.removeColumn('users', 'auth0_id');
+    await queryInterface.removeColumn('users', 'auth_subject');
   },
 };

@@ -16,8 +16,8 @@ class AuthService {
     this.repository = new AuthRepository(models);
   }
 
-  async findByAuth0Id(auth0Id) {
-    return this.repository.findByAuth0Id(auth0Id);
+  async findByAuthSubject(authSubject) {
+    return this.repository.findByAuthSubject(authSubject);
   }
 
   async findByEmail(email) {
@@ -37,12 +37,12 @@ class AuthService {
       return null;
     }
 
-    const auth0Id = profile.sub;
+    const authSubject = profile.sub;
     const email = profile.email;
     let user = null;
 
-    if (auth0Id) {
-      user = await this.repository.findByAuth0Id(auth0Id);
+    if (authSubject) {
+      user = await this.repository.findByAuthSubject(authSubject);
     }
     if (user) {
       return user;
@@ -54,9 +54,9 @@ class AuthService {
 
     user = await this.repository.findByEmail(email);
     if (user) {
-      if (!user.auth0Id && auth0Id) {
-        await this.repository.linkAuth0Id(user.id, auth0Id);
-        user.auth0Id = auth0Id;
+      if (!user.authSubject && authSubject) {
+        await this.repository.linkAuthSubject(user.id, authSubject);
+        user.authSubject = authSubject;
       }
       return user;
     }
@@ -67,7 +67,7 @@ class AuthService {
     const username = await this.generateExternalUsername(usernameBase);
     const randomPassword = crypto.randomBytes(24).toString('hex');
 
-    return this.repository.createUser({ username, email, password: randomPassword, auth0Id });
+    return this.repository.createUser({ username, email, password: randomPassword, authSubject });
   }
 
   async generateExternalUsername(usernameBase) {

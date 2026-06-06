@@ -63,21 +63,20 @@ app.use(requestContext);
 app.use(requestLogger);
 app.use(telemetryMiddleware());
 
-// Setup Auth0 OIDC if browser session configuration is available.
-if (env.auth0 && env.auth0.enabled) {
+// Setup OIDC if browser session configuration is available.
+if (env.auth && env.auth.enabled) {
   const authProvider = require('./services/authProvider');
-  authProvider.init(env.auth0.issuer);
+  authProvider.init(env.auth.issuer);
 }
 
-if (env.auth0 && env.auth0.enabled && env.auth0.clientId && env.auth0.clientSecret) {
+if (env.auth && env.auth.enabled && env.auth.clientId && env.auth.clientSecret) {
   app.use(
     auth({
       authRequired: false,
-      auth0Logout: true,
-      baseURL: env.auth0.baseURL,
-      clientID: env.auth0.clientId,
-      secret: env.auth0.clientSecret, // express-openid-connect expects `secret`
-      issuerBaseURL: env.auth0.issuer,
+      baseURL: env.auth.baseURL,
+      clientID: env.auth.clientId,
+      secret: env.auth.clientSecret,
+      issuerBaseURL: env.auth.issuer,
       routes: {
         login: '/login',
         logout: '/logout',

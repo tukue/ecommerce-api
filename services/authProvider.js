@@ -38,7 +38,7 @@ const getSigningKey = (kid) =>
     });
   });
 
-async function verifyAuth0Token(token, { audience, issuer }) {
+async function verifyToken(token, { audience, issuer }) {
   if (!jwksClient && issuer) {
     init(issuer);
   }
@@ -68,6 +68,6 @@ function verifyLocalToken(token, secret) {
 module.exports = {
   init,
   getSigningKey,
-  verifyAuth0Token,
+  verifyToken,
   verifyLocalToken,
 };

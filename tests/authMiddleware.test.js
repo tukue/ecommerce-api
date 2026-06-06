@@ -19,19 +19,19 @@ const createResponse = () => {
   return res;
 };
 
-const loadMiddleware = ({ auth0Enabled = false, verifyAuth0Token = jest.fn() } = {}) => {
+const loadMiddleware = ({ externalAuthEnabled = false, verifyToken = jest.fn() } = {}) => {
   jest.resetModules();
   process.env = {
     ...ORIGINAL_ENV,
     JWT_SECRET: 'test-secret',
-    AUTH0_DOMAIN: auth0Enabled ? 'tenant.example.com' : '',
-    AUTH0_AUDIENCE: auth0Enabled ? 'https://api.example.com' : '',
-    AUTH0_ISSUER: '',
+    AUTH_DOMAIN: externalAuthEnabled ? 'tenant.example.com' : '',
+    AUTH_AUDIENCE: externalAuthEnabled ? 'https://api.example.com' : '',
+    AUTH_ISSUER: '',
   };
 
   jest.doMock('../services/authProvider', () => ({
     init: jest.fn(),
-    verifyAuth0Token,
+    verifyToken,
   }));
 
   return require('../middleware/authMiddleWare');
@@ -44,10 +44,10 @@ describe('authMiddleware', () => {
     process.env = ORIGINAL_ENV;
   });
 
-  it('accepts local JWTs when Auth0 is configured', async () => {
+  it('accepts local JWTs when external auth is configured', async () => {
     const user = { id: 123, email: 'local@example.com' };
-    const verifyAuth0Token = jest.fn();
-    const { authMiddleware } = loadMiddleware({ auth0Enabled: true, verifyAuth0Token });
+    const verifyToken = jest.fn();
+    const { authMiddleware } = loadMiddleware({ externalAuthEnabled: true, verifyToken });
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET);
     const req = {
       headers: { authorization: `Bearer ${token}` },
@@ -64,19 +64,23 @@ describe('authMiddleware', () => {
 
     expect(req.user).toBe(user);
     expect(next).toHaveBeenCalledTimes(1);
-    expect(verifyAuth0Token).not.toHaveBeenCalled();
+    expect(verifyToken).not.toHaveBeenCalled();
   });
 
-  it('provisions a user from an Auth0 token after local JWT verification fails', async () => {
-    const provisionedUser = { id: 456, email: 'auth0@example.com', auth0Id: 'auth0|456' };
-    const verifyAuth0Token = jest.fn().mockResolvedValue({
-      sub: provisionedUser.auth0Id,
+  it('provisions a user from an external token after local JWT verification fails', async () => {
+    const provisionedUser = {
+      id: 456,
+      email: 'external@example.com',
+      authSubject: 'provider|456',
+    };
+    const verifyToken = jest.fn().mockResolvedValue({
+      sub: provisionedUser.authSubject,
       email: provisionedUser.email,
-      name: 'Auth0 User',
+      name: 'External User',
     });
-    const { authMiddleware } = loadMiddleware({ auth0Enabled: true, verifyAuth0Token });
+    const { authMiddleware } = loadMiddleware({ externalAuthEnabled: true, verifyToken });
     const req = {
-      headers: { authorization: 'Bearer auth0-token' },
+      headers: { authorization: 'Bearer external-token' },
       models: {
         User: {
           findByPk: jest.fn(),
@@ -96,7 +100,7 @@ describe('authMiddleware', () => {
     await authMiddleware(req, res, next);
 
     expect(req.user).toBe(provisionedUser);
-    expect(verifyAuth0Token).toHaveBeenCalledWith('auth0-token', {
+    expect(verifyToken).toHaveBeenCalledWith('external-token', {
       audience: 'https://api.example.com',
       issuer: 'https://tenant.example.com/',
     });

@@ -56,11 +56,11 @@ module.exports = (sequelize, DataTypes) => {
           isIn: [['user', 'admin']],
         },
       },
-      auth0Id: {
+      authSubject: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        field: 'auth0_id',
+        field: 'auth_subject',
         validate: {
           len: [1, 255],
         },

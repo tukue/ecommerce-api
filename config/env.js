@@ -15,9 +15,9 @@ if (process.env.NODE_ENV !== 'test' && process.env.JWT_SECRET.length < MIN_JWT_S
   throw new Error(`JWT_SECRET must be at least ${MIN_JWT_SECRET_LENGTH} characters long`);
 }
 
-const auth0Domain = process.env.AUTH0_DOMAIN || '';
-const auth0Audience = process.env.AUTH0_AUDIENCE || '';
-const auth0Issuer = process.env.AUTH0_ISSUER || (auth0Domain ? `https://${auth0Domain}/` : '');
+const authDomain = process.env.AUTH_DOMAIN || '';
+const authAudience = process.env.AUTH_AUDIENCE || '';
+const authIssuer = process.env.AUTH_ISSUER || (authDomain ? `https://${authDomain}/` : '');
 
 module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -30,13 +30,13 @@ module.exports = {
   otelEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://jaeger:4318',
   serviceName: process.env.OTEL_SERVICE_NAME || 'ecommerce-api',
   shutdownTimeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000),
-  auth0: {
-    domain: auth0Domain,
-    audience: auth0Audience,
-    issuer: auth0Issuer,
-    clientId: process.env.AUTH0_CLIENT_ID || '',
-    clientSecret: process.env.AUTH0_CLIENT_SECRET || '',
-    enabled: Boolean(auth0Domain && auth0Audience),
-    baseURL: process.env.AUTH0_BASE_URL || `http://localhost:${process.env.PORT || 5004}`,
+  auth: {
+    domain: authDomain,
+    audience: authAudience,
+    issuer: authIssuer,
+    clientId: process.env.AUTH_CLIENT_ID || '',
+    clientSecret: process.env.AUTH_CLIENT_SECRET || '',
+    enabled: Boolean(authDomain && authAudience),
+    baseURL: process.env.AUTH_BASE_URL || `http://localhost:${process.env.PORT || 5004}`,
   },
 };
