@@ -71,11 +71,12 @@ class AuthService {
   }
 
   async generateExternalUsername(usernameBase) {
-    const normalized = usernameBase
-      .replace(/[^a-z0-9_]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '')
-      .slice(0, 30) || 'user';
+    const normalized =
+      usernameBase
+        .replace(/[^a-z0-9_]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 30) || 'user';
 
     let username = normalized;
     let suffix = 1;
