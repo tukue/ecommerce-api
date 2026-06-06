@@ -7,22 +7,28 @@ let jwksClient = null;
 
 function createJwksClient(issuer) {
   return jwksRsa({
-    jwksUri: `${issuer.replace(/\/$/, '')}.well-known/jwks.json`,
+    jwksUri: `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`,
     cache: true,
     rateLimit: true,
   });
 }
 
 function init(issuer) {
-  if (!issuer) return;
+  if (!issuer) {
+    return;
+  }
   jwksClient = createJwksClient(issuer);
 }
 
 const getSigningKey = (kid) =>
   new Promise((resolve, reject) => {
-    if (!jwksClient) return reject(new Error('JWKS client not configured'));
+    if (!jwksClient) {
+      return reject(new Error('JWKS client not configured'));
+    }
     jwksClient.getSigningKey(kid, (err, key) => {
-      if (err) return reject(err);
+      if (err) {
+        return reject(err);
+      }
       try {
         const pubKey = key.getPublicKey();
         resolve(pubKey);
@@ -33,7 +39,9 @@ const getSigningKey = (kid) =>
   });
 
 async function verifyAuth0Token(token, { audience, issuer }) {
-  if (!jwksClient && issuer) init(issuer);
+  if (!jwksClient && issuer) {
+    init(issuer);
+  }
   const decodedHeader = jwt.decode(token, { complete: true });
   if (!decodedHeader || !decodedHeader.header || !decodedHeader.header.kid) {
     const err = new Error('Invalid token header');

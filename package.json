@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest",
+    "test": "npm run test:backend -- --runInBand && npm run test:frontend -- --runInBand",
     "test:backend": "jest --config jest.backend.config.js",
     "test:frontend": "jest --config jest.frontend.config.js",
     "migrate": "npx sequelize-cli db:migrate",

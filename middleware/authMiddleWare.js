@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-const jwksRsa = require('jwks-rsa');
-const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const AuthService = require('../services/authService');
+const authProvider = require('../services/authProvider');
 
 const rateLimitMessage = (message) => ({
   error: 'RateLimitExceeded',
@@ -46,55 +46,70 @@ const loginLimiter = rateLimit({
   message: { message: 'Too many login attempts, please try again after 15 minutes' },
 });
 
-// Configure JWKS client if Auth0 is enabled via env
 const auth0Domain = process.env.AUTH0_DOMAIN || '';
 const auth0Audience = process.env.AUTH0_AUDIENCE || '';
 const auth0Issuer = process.env.AUTH0_ISSUER || (auth0Domain ? `https://${auth0Domain}/` : '');
+const isAuth0Enabled = Boolean(auth0Domain && auth0Audience);
 
-// Unified auth module
-const auth = require('../services/auth');
+const getBearerToken = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
 
-// auth.init will be called from app startup when available
+  return authHeader.split(' ')[1];
+};
 
+const authenticateLocalToken = async (req, token) => {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const user = await req.models.User.findByPk(decoded.userId);
+  if (!user) {
+    return null;
+  }
+
+  return user;
+};
+
+const authenticateAuth0Token = async (req, token) => {
+  const decoded = await authProvider.verifyAuth0Token(token, {
+    audience: auth0Audience,
+    issuer: auth0Issuer,
+  });
+  const authService = new AuthService(req.models);
+  return authService.provisionUserFromToken(decoded);
+};
 
 const authMiddleware = async (req, res, next) => {
   try {
-    // If express-openid-connect session exists, trust it and map to local user
     if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
-      const oidcUser = req.oidc.user || {};
-      const user = await auth.provisionFromOidc(req.models, oidcUser);
-      if (!user) return res.status(401).json({ message: 'User not found' });
+      const authService = new AuthService(req.models);
+      const user = await authService.provisionUserFromOidc(req.oidc.user || {});
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
       req.user = user;
       return next();
     }
 
-    // Next try: Authorization: Bearer <token>
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = getBearerToken(req);
+    if (!token) {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const token = authHeader.split(' ')[1];
-    let decoded;
-
-    if (auth0Domain && auth0Audience) {
-      // Validate access token issued by Auth0 using JWKS
-      const decodedHeader = jwt.decode(token, { complete: true });
-      if (!decodedHeader || !decodedHeader.header || !decodedHeader.header.kid) {
-        return res.status(401).json({ message: 'Invalid token header' });
+    try {
+      const user = await authenticateLocalToken(req, token);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
       }
-
-      // verify token and provision user via unified auth module
-      const decoded = await auth.verifyToken(token, { audience: auth0Audience, issuer: auth0Issuer });
-      const user = await auth.provisionFromToken(req.models, decoded);
-      if (!user) return res.status(401).json({ message: 'User not found' });
       req.user = user;
       return next();
+    } catch (error) {
+      if (!isAuth0Enabled || error.name === 'TokenExpiredError') {
+        throw error;
+      }
     }
 
-    // Fallback: local JWT verification
-    const localDecoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await req.models.User.findByPk(localDecoded.userId);
+    const user = await authenticateAuth0Token(req, token);
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -104,7 +119,7 @@ const authMiddleware = async (req, res, next) => {
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ message: 'Token has expired. Please log in again.' });
-    } else if (error.name === 'JsonWebTokenError') {
+    } else if (error.name === 'JsonWebTokenError' || error.name === 'InvalidTokenError') {
       return res.status(401).json({ message: 'Invalid token. Please log in again.' });
     }
     console.error('Authentication error:', error);
@@ -126,44 +141,39 @@ const adminMiddleware = (req, res, next) => {
 
 const optionalAuthMiddleware = async (req, res, next) => {
   try {
-    // If OIDC session exists, map to local user
     if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
-      const oidcUser = req.oidc.user || {};
-      const AuthService = require('../services/authService');
       const authService = new AuthService(req.models);
-      const user = await authService.provisionUserFromOidc(oidcUser);
-      if (user) req.user = user;
+      const user = await authService.provisionUserFromOidc(req.oidc.user || {});
+      if (user) {
+        req.user = user;
+      }
       return next();
     }
 
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-
-      if (auth0Domain && auth0Audience) {
-        try {
-          const decodedHeader = jwt.decode(token, { complete: true });
-          if (decodedHeader && decodedHeader.header && decodedHeader.header.kid) {
-            const decoded = await authProvider.verifyAuth0Token(token, { audience: auth0Audience, issuer: auth0Issuer });
-            const AuthService = require('../services/authService');
-            const authService = new AuthService(req.models);
-            const user = await authService.provisionUserFromToken(decoded);
-            if (user) req.user = user;
-          }
-        } catch (e) {
-          // ignore invalid token
+    const token = getBearerToken(req);
+    if (token) {
+      try {
+        const user = await authenticateLocalToken(req, token);
+        if (user) {
+          req.user = user;
+          return next();
         }
-      } else {
+      } catch {
+        // ignore invalid token
+      }
+
+      if (isAuth0Enabled) {
         try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET);
-          const user = await req.models.User.findByPk(decoded.userId);
-          if (user) req.user = user;
-        } catch (e) {
+          const user = await authenticateAuth0Token(req, token);
+          if (user) {
+            req.user = user;
+          }
+        } catch {
           // ignore invalid token
         }
       }
     }
-  } catch (e) {
+  } catch {
     // swallow
   }
   next();

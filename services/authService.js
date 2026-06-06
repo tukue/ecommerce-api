@@ -25,44 +25,32 @@ class AuthService {
   }
 
   async provisionUserFromOidc(oidcUser) {
-    if (!oidcUser) return null;
-    const auth0Id = oidcUser.sub;
-    const email = oidcUser.email;
-    if (!email) return null;
-
-    // Prefer mapping by auth0Id
-    let user = null;
-    if (auth0Id) user = await this.repository.findByAuth0Id(auth0Id);
-    if (user) return user;
-
-    // Fallback to email mapping
-    user = await this.repository.findByEmail(email);
-    if (user) {
-      if (!user.auth0Id && auth0Id) {
-        await this.repository.linkAuth0Id(user.id, auth0Id);
-        user.auth0Id = auth0Id;
-      }
-      return user;
-    }
-
-    // Create new user
-    const usernameBase = oidcUser.name ? oidcUser.name.replace(/\s+/g, '_').toLowerCase() : email.split('@')[0];
-    const username = usernameBase.slice(0, 30);
-    const randomPassword = crypto.randomBytes(24).toString('hex');
-
-    user = await this.repository.createUser({ username, email, password: randomPassword, auth0Id });
-    return user;
+    return this.provisionExternalUser(oidcUser);
   }
 
   async provisionUserFromToken(decodedToken) {
-    if (!decodedToken) return null;
-    const auth0Id = decodedToken.sub;
-    const email = decodedToken.email;
-    if (!email) return null;
+    return this.provisionExternalUser(decodedToken);
+  }
 
+  async provisionExternalUser(profile) {
+    if (!profile) {
+      return null;
+    }
+
+    const auth0Id = profile.sub;
+    const email = profile.email;
     let user = null;
-    if (auth0Id) user = await this.repository.findByAuth0Id(auth0Id);
-    if (user) return user;
+
+    if (auth0Id) {
+      user = await this.repository.findByAuth0Id(auth0Id);
+    }
+    if (user) {
+      return user;
+    }
+
+    if (!email) {
+      return null;
+    }
 
     user = await this.repository.findByEmail(email);
     if (user) {
@@ -73,73 +61,33 @@ class AuthService {
       return user;
     }
 
-    const usernameBase = decodedToken.name ? decodedToken.name.replace(/\s+/g, '_').toLowerCase() : email.split('@')[0];
-    const username = usernameBase.slice(0, 30);
+    const usernameBase = profile.name
+      ? profile.name.replace(/\s+/g, '_').toLowerCase()
+      : email.split('@')[0];
+    const username = await this.generateExternalUsername(usernameBase);
     const randomPassword = crypto.randomBytes(24).toString('hex');
 
-    user = await this.repository.createUser({ username, email, password: randomPassword, auth0Id });
-    return user;
+    return this.repository.createUser({ username, email, password: randomPassword, auth0Id });
   }
 
+  async generateExternalUsername(usernameBase) {
+    const normalized = usernameBase
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 30) || 'user';
 
-  // Provision users from OIDC id token / userinfo
-  async provisionUserFromOidc(oidcUser) {
-    if (!oidcUser) return null;
-    const auth0Id = oidcUser.sub;
-    const email = oidcUser.email;
-    if (!email) return null;
+    let username = normalized;
+    let suffix = 1;
 
-    // Prefer mapping by auth0Id
-    let user = null;
-    if (auth0Id) user = await this.repository.findByAuth0Id(auth0Id);
-    if (user) return user;
-
-    // Fallback to email mapping
-    user = await this.repository.findByEmail(email);
-    if (user) {
-      if (!user.auth0Id && auth0Id) {
-        await this.repository.linkAuth0Id(user.id, auth0Id);
-        user.auth0Id = auth0Id;
-      }
-      return user;
+    while (await this.repository.findByUsername(username)) {
+      const suffixText = `_${suffix}`;
+      username = `${normalized.slice(0, 30 - suffixText.length)}${suffixText}`;
+      suffix += 1;
     }
 
-    // Create new user
-    const usernameBase = oidcUser.name ? oidcUser.name.replace(/\s+/g, '_').toLowerCase() : email.split('@')[0];
-    const username = usernameBase.slice(0, 30);
-    const randomPassword = crypto.randomBytes(24).toString('hex');
-
-    user = await this.repository.createUser({ username, email, password: randomPassword, auth0Id });
-    return user;
+    return username;
   }
-
-  async provisionUserFromToken(decodedToken) {
-    if (!decodedToken) return null;
-    const auth0Id = decodedToken.sub;
-    const email = decodedToken.email;
-    if (!email) return null;
-
-    let user = null;
-    if (auth0Id) user = await this.repository.findByAuth0Id(auth0Id);
-    if (user) return user;
-
-    user = await this.repository.findByEmail(email);
-    if (user) {
-      if (!user.auth0Id && auth0Id) {
-        await this.repository.linkAuth0Id(user.id, auth0Id);
-        user.auth0Id = auth0Id;
-      }
-      return user;
-    }
-
-    const usernameBase = decodedToken.name ? decodedToken.name.replace(/\s+/g, '_').toLowerCase() : email.split('@')[0];
-    const username = usernameBase.slice(0, 30);
-    const randomPassword = crypto.randomBytes(24).toString('hex');
-
-    user = await this.repository.createUser({ username, email, password: randomPassword, auth0Id });
-    return user;
-  }
-
 
   async register(input) {
     const { username, email, password } = input;

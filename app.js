@@ -63,12 +63,13 @@ app.use(requestContext);
 app.use(requestLogger);
 app.use(telemetryMiddleware());
 
-// Setup Auth0 OIDC if enabled
+// Setup Auth0 OIDC if browser session configuration is available.
 if (env.auth0 && env.auth0.enabled) {
-  // initialize centralized auth module with issuer
-  const authModule = require('./services/auth');
-  authModule.init(env.auth0.issuer);
+  const authProvider = require('./services/authProvider');
+  authProvider.init(env.auth0.issuer);
+}
 
+if (env.auth0 && env.auth0.enabled && env.auth0.clientId && env.auth0.clientSecret) {
   app.use(
     auth({
       authRequired: false,

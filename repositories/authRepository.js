@@ -17,6 +17,10 @@ class AuthRepository {
     return this.models.User.findOne({ where: { email } });
   }
 
+  findByUsername(username) {
+    return this.models.User.findOne({ where: { username } });
+  }
+
   findById(id, options = {}) {
     return this.models.User.findByPk(id, options);
   }
@@ -38,7 +42,9 @@ class AuthRepository {
 
   // Auth0 specific helpers
   findByAuth0Id(auth0Id) {
-    if (!auth0Id) return null;
+    if (!auth0Id) {
+      return null;
+    }
     return this.models.User.findOne({ where: { auth0Id } });
   }
 
