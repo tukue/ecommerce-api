@@ -174,7 +174,7 @@ const optionalAuthMiddleware = async (req, res, next) => {
       }
     }
   } catch {
-    // swallow
+    // ignore
   }
   next();
 };

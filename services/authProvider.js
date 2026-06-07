@@ -20,12 +20,12 @@ function init(issuer) {
   jwksClient = createJwksClient(issuer);
 }
 
-const getSigningKey = (kid) =>
+const getSigningKey = (keyId) =>
   new Promise((resolve, reject) => {
     if (!jwksClient) {
       return reject(new Error('JWKS client not configured'));
     }
-    jwksClient.getSigningKey(kid, (err, key) => {
+    jwksClient.getSigningKey(keyId, (err, key) => {
       if (err) {
         return reject(err);
       }
@@ -49,8 +49,8 @@ async function verifyToken(token, { audience, issuer }) {
     throw err;
   }
 
-  const kid = decodedHeader.header.kid;
-  const publicKey = await getSigningKey(kid);
+  const keyId = decodedHeader.header.kid;
+  const publicKey = await getSigningKey(keyId);
 
   const decoded = jwt.verify(token, publicKey, {
     audience,
