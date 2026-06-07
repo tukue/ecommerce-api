@@ -46,10 +46,10 @@ This document explains the authentication architecture of the e-commerce API —
 
 The system supports two authentication methods simultaneously, with a **local-first, external-fallback** strategy:
 
-| Mode | Algorithm | Key Material | Use Case |
-|---|---|---|---|
-| **Local JWT** | HS256 | Symmetric secret (`JWT_SECRET`) | First-party users (email/password registration) |
-| **External OAuth 2.0** | RS256 | Public key from JWKS endpoint | Third-party identity (Auth0, Google, etc.) |
+| Mode                   | Algorithm | Key Material                    | Use Case                                        |
+| ---------------------- | --------- | ------------------------------- | ----------------------------------------------- |
+| **Local JWT**          | HS256     | Symmetric secret (`JWT_SECRET`) | First-party users (email/password registration) |
+| **External OAuth 2.0** | RS256     | Public key from JWKS endpoint   | Third-party identity (Auth0, Google, etc.)      |
 
 ### Why dual-mode?
 
@@ -116,12 +116,12 @@ This is the core OAuth flow — verifying access tokens issued by an external id
 
 ### Why RS256 and not HS256 for external tokens?
 
-| Property | RS256 (asymmetric) | HS256 (symmetric) |
-|---|---|---|
-| Key distribution | Public key shared, private key secret | Same secret used to sign and verify |
-| Trust model | Anyone can verify, only issuer can sign | Both parties must trust each other with the secret |
-| Key rotation | Clients fetch new public key from JWKS | All clients must be updated with new secret |
-| Security boundary | Provider's private key never leaves their server | Shared secret must be stored by every verifier |
+| Property          | RS256 (asymmetric)                               | HS256 (symmetric)                                  |
+| ----------------- | ------------------------------------------------ | -------------------------------------------------- |
+| Key distribution  | Public key shared, private key secret            | Same secret used to sign and verify                |
+| Trust model       | Anyone can verify, only issuer can sign          | Both parties must trust each other with the secret |
+| Key rotation      | Clients fetch new public key from JWKS           | All clients must be updated with new secret        |
+| Security boundary | Provider's private key never leaves their server | Shared secret must be stored by every verifier     |
 
 For a third-party identity provider, **RS256 is the industry standard** — it allows the API to verify tokens without ever possessing the signing key.
 
@@ -149,6 +149,7 @@ JWT headers contain a `kid` (Key ID) field. The API uses this to fetch the corre
 ### Key rotation handling
 
 When Auth0 rotates signing keys, the JWKS endpoint returns the new key with a new `kid`. The API's next verification automatically:
+
 1. Sees the new `kid` in the JWT header
 2. Fetches the updated JWKS (cache miss)
 3. Verifies with the new public key
@@ -162,8 +163,8 @@ No deployment, configuration change, or restart is needed.
 function createJwksClient(issuer) {
   return jwksRsa({
     jwksUri: `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`,
-    cache: true,       // Avoid repeated fetches for the same key
-    rateLimit: true,   // Max 1 request per 10s per key to the JWKS endpoint
+    cache: true, // Avoid repeated fetches for the same key
+    rateLimit: true, // Max 1 request per 10s per key to the JWKS endpoint
   });
 }
 ```
@@ -244,12 +245,12 @@ This means external users are **automatically registered on first successful log
 
 ## Rate Limiting Strategy
 
-| Limiter | Window | Max Requests | Where Applied |
-|---|---|---|---|
-| **Global API** | 15 min | 100 | All `POST /api/auth/*` endpoints |
-| **Mutating** | 15 min | 50 | POST/PUT/PATCH/DELETE on `/api/*` |
-| **Auth-sensitive** | 15 min | 5 | `/register`, `/request-reset`, `/reset` |
-| **Login** | 15 min | 5 | `/login` |
+| Limiter            | Window | Max Requests | Where Applied                           |
+| ------------------ | ------ | ------------ | --------------------------------------- |
+| **Global API**     | 15 min | 100          | All `POST /api/auth/*` endpoints        |
+| **Mutating**       | 15 min | 50           | POST/PUT/PATCH/DELETE on `/api/*`       |
+| **Auth-sensitive** | 15 min | 5            | `/register`, `/request-reset`, `/reset` |
+| **Login**          | 15 min | 5            | `/login`                                |
 
 All limiters emit standard `RateLimit-*` headers and return a JSON error envelope when exceeded. Rate limiting is disabled in test environments.
 
@@ -257,20 +258,20 @@ All limiters emit standard `RateLimit-*` headers and return a JSON error envelop
 
 ## Route Protection Matrix
 
-| Method | Endpoint | Auth Required | Admin Required |
-|---|---|---|---|
-| POST | `/api/auth/register` | — | — |
-| POST | `/api/auth/login` | — | — |
-| GET | `/api/auth/profile` | Yes | — |
-| POST | `/api/auth/request-reset` | — | — |
-| POST | `/api/auth/reset` | — | — |
-| POST | `/api/orders` | Yes | — |
-| GET | `/api/orders/:id` | Yes | — |
-| POST | `/api/products` | Yes | Yes |
-| PUT | `/api/products/:id` | Yes | Yes |
-| DELETE | `/api/products/:id` | Yes | Yes |
-| POST | `/api/checkout` | Yes | — |
-| GET | `/api/products` | — | — |
+| Method | Endpoint                  | Auth Required | Admin Required |
+| ------ | ------------------------- | ------------- | -------------- |
+| POST   | `/api/auth/register`      | —             | —              |
+| POST   | `/api/auth/login`         | —             | —              |
+| GET    | `/api/auth/profile`       | Yes           | —              |
+| POST   | `/api/auth/request-reset` | —             | —              |
+| POST   | `/api/auth/reset`         | —             | —              |
+| POST   | `/api/orders`             | Yes           | —              |
+| GET    | `/api/orders/:id`         | Yes           | —              |
+| POST   | `/api/products`           | Yes           | Yes            |
+| PUT    | `/api/products/:id`       | Yes           | Yes            |
+| DELETE | `/api/products/:id`       | Yes           | Yes            |
+| POST   | `/api/checkout`           | Yes           | —              |
+| GET    | `/api/products`           | —             | —              |
 
 Public routes (products, health) do not require authentication. Admin-only routes check `req.user.role === 'admin'` after authentication.
 
@@ -280,10 +281,10 @@ Public routes (products, health) do not require authentication. Admin-only route
 
 The authentication system is tested at three levels:
 
-| Test File | Scope | What It Verifies |
-|---|---|---|
-| `tests/authService.test.js` | Unit | Password hashing, user provisioning, token signing |
-| `tests/authMiddleware.test.js` | Integration | Token verification, fallback behavior, expired tokens |
+| Test File                      | Scope       | What It Verifies                                                      |
+| ------------------------------ | ----------- | --------------------------------------------------------------------- |
+| `tests/authService.test.js`    | Unit        | Password hashing, user provisioning, token signing                    |
+| `tests/authMiddleware.test.js` | Integration | Token verification, fallback behavior, expired tokens                 |
 | `tests/authController.test.js` | Integration | Full request→response cycle: register, login, profile, password reset |
 
 ---
@@ -309,28 +310,28 @@ When these variables are absent, `auth.enabled` is `false`, and the middleware s
 
 ## Environment Configuration
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `JWT_SECRET` | Yes | HMAC secret for local JWTs (min 32 chars) |
-| `JWT_EXPIRES_IN` | No | Local token lifetime (default `1h`) |
-| `AUTH_DOMAIN` | For OAuth | Auth0 tenant domain (e.g., `myapp.us.auth0.com`) |
-| `AUTH_AUDIENCE` | For OAuth | API identifier in Auth0 |
-| `AUTH_ISSUER` | No | Auto-derived from `AUTH_DOMAIN` if not set |
-| `AUTH_CLIENT_ID` | For OIDC browser flow | Auth0 application client ID |
-| `AUTH_CLIENT_SECRET` | For OIDC browser flow | Auth0 application client secret |
+| Variable             | Required              | Purpose                                          |
+| -------------------- | --------------------- | ------------------------------------------------ |
+| `JWT_SECRET`         | Yes                   | HMAC secret for local JWTs (min 32 chars)        |
+| `JWT_EXPIRES_IN`     | No                    | Local token lifetime (default `1h`)              |
+| `AUTH_DOMAIN`        | For OAuth             | Auth0 tenant domain (e.g., `myapp.us.auth0.com`) |
+| `AUTH_AUDIENCE`      | For OAuth             | API identifier in Auth0                          |
+| `AUTH_ISSUER`        | No                    | Auto-derived from `AUTH_DOMAIN` if not set       |
+| `AUTH_CLIENT_ID`     | For OIDC browser flow | Auth0 application client ID                      |
+| `AUTH_CLIENT_SECRET` | For OIDC browser flow | Auth0 application client secret                  |
 
 ---
 
 ## Key Files Reference
 
-| File | Purpose |
-|---|---|
-| `middleware/authMiddleWare.js` | Express middleware — token extraction, dual-mode verification, rate limiters, admin guard |
-| `services/authProvider.js` | OAuth token verification using JWKS (RS256) |
-| `services/authService.js` | Local auth (register, login, password reset), external user provisioning |
-| `repositories/authRepository.js` | Data access layer — user lookup, creation, auth subject linking |
-| `config/env.js` | Auth configuration validation at startup |
-| `app.js` | JWKS client initialization, OIDC middleware mounting, route registration |
+| File                             | Purpose                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| `middleware/authMiddleWare.js`   | Express middleware — token extraction, dual-mode verification, rate limiters, admin guard |
+| `services/authProvider.js`       | OAuth token verification using JWKS (RS256)                                               |
+| `services/authService.js`        | Local auth (register, login, password reset), external user provisioning                  |
+| `repositories/authRepository.js` | Data access layer — user lookup, creation, auth subject linking                           |
+| `config/env.js`                  | Auth configuration validation at startup                                                  |
+| `app.js`                         | JWKS client initialization, OIDC middleware mounting, route registration                  |
 
 ---
 

@@ -210,16 +210,16 @@ Client                          Express API                        Auth0 / OIDC 
 
 ### How It Works
 
-| Step | What Happens |
-|---|---|
-| **1. Token extraction** | Bearer token pulled from `Authorization` header, or OIDC session checked |
-| **2. Local verification** | `jwt.verify(token, JWT_SECRET)` — HS256 symmetric verification. Fast (no external calls) |
-| **3. External fallback** | If local fails and external auth is enabled, decode JWT header to extract `kid` (Key ID) |
-| **4. JWKS fetch** | Fetch public key from `https://{domain}/.well-known/jwks.json`. Cached in-memory by `jwks-rsa` |
-| **5. RS256 verification** | `jwt.verify(token, publicKey, { audience, issuer, algorithms: ['RS256'] })` |
-| **6. Auto-provisioning** | First-time external users are created automatically — lookup by `sub` → by email → create |
-| **7. Rate limiting** | 4 tiers: global (100/15m), mutating (50/15m), auth-sensitive (5/15m), login (5/15m) |
-| **8. Admin guard** | `adminMiddleware` checks `req.user.role === 'admin'` after authentication |
+| Step                      | What Happens                                                                                   |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| **1. Token extraction**   | Bearer token pulled from `Authorization` header, or OIDC session checked                       |
+| **2. Local verification** | `jwt.verify(token, JWT_SECRET)` — HS256 symmetric verification. Fast (no external calls)       |
+| **3. External fallback**  | If local fails and external auth is enabled, decode JWT header to extract `kid` (Key ID)       |
+| **4. JWKS fetch**         | Fetch public key from `https://{domain}/.well-known/jwks.json`. Cached in-memory by `jwks-rsa` |
+| **5. RS256 verification** | `jwt.verify(token, publicKey, { audience, issuer, algorithms: ['RS256'] })`                    |
+| **6. Auto-provisioning**  | First-time external users are created automatically — lookup by `sub` → by email → create      |
+| **7. Rate limiting**      | 4 tiers: global (100/15m), mutating (50/15m), auth-sensitive (5/15m), login (5/15m)            |
+| **8. Admin guard**        | `adminMiddleware` checks `req.user.role === 'admin'` after authentication                      |
 
 ### Why This Approach
 
@@ -229,12 +229,12 @@ Client                          Express API                        Auth0 / OIDC 
 
 ### Key Files
 
-| File | Role |
-|---|---|
-| `middleware/authMiddleWare.js` | Token extraction, dual-mode verification, rate limiters, admin guard |
-| `services/authProvider.js` | OAuth token verification via JWKS (RS256) |
-| `services/authService.js` | Local auth (register, login, password reset), external user provisioning |
-| `repositories/authRepository.js` | Data access for user lookup, creation, auth subject linking |
+| File                             | Role                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `middleware/authMiddleWare.js`   | Token extraction, dual-mode verification, rate limiters, admin guard     |
+| `services/authProvider.js`       | OAuth token verification via JWKS (RS256)                                |
+| `services/authService.js`        | Local auth (register, login, password reset), external user provisioning |
+| `repositories/authRepository.js` | Data access for user lookup, creation, auth subject linking              |
 
 > See [`docs/OAUTH_FLOW.md`](docs/OAUTH_FLOW.md) for the full deep dive — JWKS key rotation, decision tree, route matrix, test coverage, and architecture rationale.
 
