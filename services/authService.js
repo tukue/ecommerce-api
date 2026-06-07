@@ -16,6 +16,80 @@ class AuthService {
     this.repository = new AuthRepository(models);
   }
 
+  async findByAuthSubject(authSubject) {
+    return this.repository.findByAuthSubject(authSubject);
+  }
+
+  async findByEmail(email) {
+    return this.repository.findByEmail(email);
+  }
+
+  async provisionUserFromOidc(oidcUser) {
+    return this.provisionExternalUser(oidcUser);
+  }
+
+  async provisionUserFromToken(decodedToken) {
+    return this.provisionExternalUser(decodedToken);
+  }
+
+  async provisionExternalUser(profile) {
+    if (!profile) {
+      return null;
+    }
+
+    const authSubject = profile.sub;
+    const email = profile.email;
+    let user = null;
+
+    if (authSubject) {
+      user = await this.repository.findByAuthSubject(authSubject);
+    }
+    if (user) {
+      return user;
+    }
+
+    if (!email) {
+      return null;
+    }
+
+    user = await this.repository.findByEmail(email);
+    if (user) {
+      if (!user.authSubject && authSubject) {
+        await this.repository.linkAuthSubject(user.id, authSubject);
+        user.authSubject = authSubject;
+      }
+      return user;
+    }
+
+    const usernameBase = profile.name
+      ? profile.name.replace(/\s+/g, '_').toLowerCase()
+      : email.split('@')[0];
+    const username = await this.generateExternalUsername(usernameBase);
+    const randomPassword = crypto.randomBytes(24).toString('hex');
+
+    return this.repository.createUser({ username, email, password: randomPassword, authSubject });
+  }
+
+  async generateExternalUsername(usernameBase) {
+    const normalized =
+      usernameBase
+        .replace(/[^a-z0-9_]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 30) || 'user';
+
+    let username = normalized;
+    let suffix = 1;
+
+    while (await this.repository.findByUsername(username)) {
+      const suffixText = `_${suffix}`;
+      username = `${normalized.slice(0, 30 - suffixText.length)}${suffixText}`;
+      suffix += 1;
+    }
+
+    return username;
+  }
+
   async register(input) {
     const { username, email, password } = input;
 

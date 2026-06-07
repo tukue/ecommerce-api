@@ -17,6 +17,9 @@ const telemetryMiddleware = require('./middleware/telemetry');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter, mutatingApiLimiter } = require('./middleware/authMiddleWare');
 
+const { auth } = require('express-openid-connect');
+const env = require('./config/env');
+
 const orderRoutes = require('./routes/orderRoutes');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -59,6 +62,29 @@ app.set('views', `${__dirname}/views`);
 app.use(requestContext);
 app.use(requestLogger);
 app.use(telemetryMiddleware());
+
+// Setup OIDC if browser session configuration is available.
+if (env.auth && env.auth.enabled) {
+  const authProvider = require('./services/authProvider');
+  authProvider.init(env.auth.issuer);
+}
+
+if (env.auth && env.auth.enabled && env.auth.clientId && env.auth.clientSecret) {
+  app.use(
+    auth({
+      authRequired: false,
+      baseURL: env.auth.baseURL,
+      clientID: env.auth.clientId,
+      secret: env.auth.clientSecret,
+      issuerBaseURL: env.auth.issuer,
+      routes: {
+        login: '/login',
+        logout: '/logout',
+        callback: '/callback',
+      },
+    }),
+  );
+}
 
 app.use((req, res, next) => {
   req.models = { User, Product, Payment, Order };

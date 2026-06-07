@@ -56,6 +56,15 @@ module.exports = (sequelize, DataTypes) => {
           isIn: [['user', 'admin']],
         },
       },
+      authSubject: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+        field: 'auth_subject',
+        validate: {
+          len: [1, 255],
+        },
+      },
     },
     {
       sequelize,

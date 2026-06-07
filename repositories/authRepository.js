@@ -17,6 +17,10 @@ class AuthRepository {
     return this.models.User.findOne({ where: { email } });
   }
 
+  findByUsername(username) {
+    return this.models.User.findOne({ where: { username } });
+  }
+
   findById(id, options = {}) {
     return this.models.User.findByPk(id, options);
   }
@@ -34,6 +38,17 @@ class AuthRepository {
         },
       },
     });
+  }
+
+  findByAuthSubject(authSubject) {
+    if (!authSubject) {
+      return null;
+    }
+    return this.models.User.findOne({ where: { authSubject } });
+  }
+
+  linkAuthSubject(userId, authSubject) {
+    return this.models.User.update({ authSubject }, { where: { id: userId } });
   }
 }
 
