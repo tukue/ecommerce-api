@@ -14,7 +14,7 @@ Unacceptable behavior
 - Posting sensitive information (credentials, private data) in issues, PRs, or discussions.
 
 Reporting and enforcement
-- Report violations to the maintainers at maintainers@example.com (or security@example.com for vulnerabilities). Reports will be handled confidentially.
+- Report violations to the maintainers at maintainers@tukue.io (or security@tukue.io for vulnerabilities). Reports will be handled confidentially.
 - Maintainers may remove content, request edits, suspend contributions, or ban accounts for serious or repeated violations. Retaliation against reporters will not be tolerated.
 
 Scope
