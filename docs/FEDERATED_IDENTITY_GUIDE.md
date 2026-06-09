@@ -749,7 +749,7 @@ Leave `FED_PROVIDERS` unset (or empty array) and `FED_PROVIDER_DB_ENABLED=false`
   "provider": "logto",
   "subject": "abc123",
   "userId": "550e8400-...",
-  "duration_ms": 45,
+  "duration_ms": 30,
   "correlationId": "req-abc-123"
 }
 ```
