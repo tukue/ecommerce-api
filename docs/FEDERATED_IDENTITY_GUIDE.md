@@ -1,6 +1,6 @@
 # Federated Identity Integration Guide
 
-This document describes the **federated identity feature** — a multi-provider authentication system that allows users to authenticate via open-source identity providers (Keycloak, Dex, Authentik, Zitadel, and any OIDC-compliant IdP) alongside the existing local JWT auth.
+This document describes the **federated identity feature** — a multi-provider authentication system that allows users to authenticate via open-source identity providers (Logto, Dex, Keycloak, Authentik, Zitadel, and any OIDC-compliant IdP) alongside the existing local JWT auth.
 
 ---
 
@@ -175,6 +175,20 @@ services:
       - ./dex/config.yaml:/etc/dex/config.yaml:ro
     ports:
       - "5556:5556"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  logto:
+    image: svhd/logto:latest
+    environment:
+      LOGTO_ENDPOINT: http://localhost:3001
+      ADMIN_ENDPOINT: http://localhost:3002
+      DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/logto
+      TRUST_PROXY_HEADER: "true"
+    ports:
+      - "3001:3001"
+      - "3002:3002"
     depends_on:
       postgres:
         condition: service_healthy
@@ -573,6 +587,33 @@ connectors:
 # 7. Issuer URL: https://authentik.example.com/application/o/ecommerce/
 ```
 
+### Logto specifics
+
+```bash
+# 1. Open Logto Admin Console at http://localhost:3002
+# 2. Create account and tenant
+# 3. Applications → Create Application → "Traditional Web"
+#    - Name: "E-Commerce API"
+#    - Redirect URIs: http://localhost:5004/api/fed/callback/logto
+#    - Post sign-out redirect URIs: http://localhost:5004
+# 4. Copy App ID → client_id, App Secret → client_secret
+# 5. API Resources → Create API Resource
+#    - API Identifier: http://localhost:5004
+# 6. Grant "E-Commerce API" access to the resource
+```
+
+```env
+FED_PROVIDERS=[{
+  "name": "logto",
+  "type": "oidc",
+  "issuer": "http://localhost:3001/oidc",
+  "client_id": "<app-id-from-admin>",
+  "client_secret": "<app-secret-from-admin>",
+  "scopes": "openid profile email",
+  "enabled": true
+}]
+```
+
 ---
 
 ## Backward Compatibility
@@ -603,46 +644,43 @@ The `authMiddleware` in `middleware/authMiddleWare.js` delegates to `FederationS
 
 ## Local Development
 
-### Quick start with Keycloak
+### Quick start with Logto
 
 ```bash
 # 1. Start the full stack
 docker compose up --build
 
-# 2. Keycloak is at http://localhost:8080
-#    Admin: admin / admin (configurable via KEYCLOAK_ADMIN_PASSWORD)
+# 2. Logto Admin Console is at http://localhost:3002
+#    Create account, create application (see Logto specifics above)
 
-# 3. Import the e-commerce realm
-#    (auto-imported via keycloak/realm-export.json volume mount)
-
-# 4. Configure the app
+# 3. Configure the app
 export FED_PROVIDERS='[{
-  "name": "keycloak-dev",
+  "name": "logto",
   "type": "oidc",
-  "issuer": "http://localhost:8080/realms/ecommerce",
-  "client_id": "ecommerce-api",
-  "client_secret": "your-client-secret",
-  "scopes": "openid profile email roles",
+  "issuer": "http://localhost:3001/oidc",
+  "client_id": "<app-id>",
+  "client_secret": "<app-secret>",
+  "scopes": "openid profile email",
   "enabled": true
 }]'
 
-# 5. Verify provider discovery
+# 4. Verify provider discovery
 curl http://localhost:5004/api/fed/providers
-# → { "providers": [{ "name": "keycloak-dev", ... }] }
+# → { "providers": [{ "name": "logto", ... }] }
 ```
 
 ### Testing with multiple providers
 
 ```bash
-# Add a Dex provider alongside Keycloak
+# Add a Dex provider alongside Logto
 export FED_PROVIDERS='[
   {
-    "name": "keycloak-dev",
+    "name": "logto",
     "type": "oidc",
-    "issuer": "http://localhost:8080/realms/ecommerce",
-    "client_id": "ecommerce-api",
-    "client_secret": "...",
-    "scopes": "openid profile email roles",
+    "issuer": "http://localhost:3001/oidc",
+    "client_id": "<app-id>",
+    "client_secret": "<app-secret>",
+    "scopes": "openid profile email",
     "enabled": true
   },
   {
@@ -708,7 +746,7 @@ Leave `FED_PROVIDERS` unset (or empty array) and `FED_PROVIDER_DB_ENABLED=false`
 {
   "level": "info",
   "message": "Federated token verified",
-  "provider": "keycloak-prod",
+  "provider": "logto",
   "subject": "abc123",
   "userId": "550e8400-...",
   "duration_ms": 45,

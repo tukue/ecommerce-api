@@ -41,7 +41,7 @@ The API implements a **dual-mode authentication system**:
 | **Ory Hydra** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ❌ | OAuth 2.0 only (no user mgmt); Pair with Ory Kratos for identity |
 | **Zitadel** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Built-in RBAC; Audit logs; B2B multi-tenant |
 | **Casdoor** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Go-based; Built-in UI; Social logins built-in |
-| **Logto** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Developer-first; SDKs; MFA; RBAC |
+| **Logto** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Developer-first; Node.js-native; SDKs; MFA; RBAC; Lowest integration friction |
 
 ### Tier 2 — Compatible with adapter layer
 
@@ -473,6 +473,58 @@ FED_PROVIDERS=[{
 }]
 ```
 
+### Logto
+
+```env
+FED_PROVIDERS=[{
+  "name": "logto",
+  "type": "oidc",
+  "issuer": "http://localhost:3001/oidc",
+  "client_id": "ecommerce-api",
+  "client_secret": "your-client-secret",
+  "scopes": "openid profile email roles",
+  "config": {
+    "role_mapping": {
+      "admin": "admin",
+      "user": "user"
+    }
+  }
+}]
+```
+
+**docker-compose addition:**
+
+```yaml
+logto:
+  image: svhd/logto:latest
+  environment:
+    LOGTO_ENDPOINT: http://localhost:3001
+    ADMIN_ENDPOINT: http://localhost:3002
+    DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/logto
+    TRUST_PROXY_HEADER: "true"
+  ports:
+    - "3001:3001"
+    - "3002:3002"
+  depends_on:
+    postgres:
+      condition: service_healthy
+```
+
+**Logto admin setup:**
+
+```bash
+# 1. Open Logto Admin Console at http://localhost:3002
+# 2. Create account and tenant
+# 3. Applications → Create Application → "Traditional Web"
+#    - Name: "E-Commerce API"
+#    - Redirect URIs: http://localhost:5004/api/fed/callback/logto
+#    - Post sign-out redirect URIs: http://localhost:5004
+# 4. Copy App ID → client_id, App Secret → client_secret
+# 5. API Resources → Create API Resource
+#    - API Identifier: http://localhost:5004
+# 6. Application → Grant "E-Commerce API" access to the resource
+```
+
 ---
 
 ## 9. User Linking Strategy
@@ -519,7 +571,7 @@ DELETE /api/fed/link/:provider/:identityId  (authenticated)
 
 ## 10. Implementation Plan
 
-### Phase 1: Foundation (estimated: 2-3 days)
+### Phase 1: Foundation 
 
 | Task | Files | Description |
 |------|-------|-------------|
@@ -542,7 +594,7 @@ DELETE /api/fed/link/:provider/:identityId  (authenticated)
 | 2.5 Create federation middleware | `middleware/federatedAuth.js` | Dynamic OIDC middleware factory |
 | 2.6 Update auth middleware | `middleware/authMiddleWare.js` | Delegate to federation service for token verification |
 
-### Phase 3: API & Routes (estimated: 2-3 days)
+### Phase 3: API & Routes
 
 | Task | Files | Description |
 |------|-------|-------------|
@@ -568,7 +620,7 @@ DELETE /api/fed/link/:provider/:identityId  (authenticated)
 | 5.3 Add setup scripts | Realm/client configuration automation |
 | 5.4 Update CI | Smoke tests for federation flows |
 
-### Phase 6: Testing (estimated: 2-3 days)
+### Phase 6: Testing 
 
 | Task | Files | Description |
 |------|-------|-------------|
@@ -698,6 +750,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  logto:
+    image: svhd/logto:latest
+    environment:
+      LOGTO_ENDPOINT: http://localhost:3001
+      ADMIN_ENDPOINT: http://localhost:3002
+      DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/logto
+      TRUST_PROXY_HEADER: "true"
+    ports:
+      - "3001:3001"
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
 ```
 
 ---
@@ -762,12 +828,13 @@ services:
 | User management | ✅ | ❌ (uses connectors) | ✅ | ✅ | ✅ | ✅ |
 | Documentation quality | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
 | Community size | Largest | Large | Medium | Medium | Small | Medium |
-| Resource footprint | Heavy (Java) | Light (Go) | Medium (Python) | Medium (Go) | Medium (Go) | Medium (TS) |
+| Resource footprint | Heavy (Java) | Light (Go) | Medium (Python) | Medium (Go) | Medium (Go) | Light (TS) |
+| **Node.js affinity** | ❌ (Java) | ❌ (Go) | ❌ (Python) | ❌ (Go) | ❌ (Go) | ✅ **Native (TS)** |
 
-**Recommendation: Keycloak first, then Dex.**
+**Recommendation: Logto (primary), Dex (secondary).**
 
-- **Keycloak** for the primary integration — most complete feature set, best documentation, and the industry standard for open-source IAM
-- **Dex** for the lightweight alternative — demonstrates provider diversity and the connector pattern (LDAP, SAML, GitHub)
+- **Logto** — same stack as the API (TypeScript/Node.js), first-class Node.js SDK (client + admin), OIDC auto-discovery, MFA, RBAC, and built-in admin console. Low resource footprint and minimal config surface make it the fastest integration path for a Node.js backend.
+- **Dex** — lightweight alternative demonstrating the connector pattern (LDAP, SAML, GitHub) for enterprise environments with existing directory services.
 
 ---
 
@@ -780,6 +847,6 @@ The current codebase is well-positioned for federated identity integration. The 
 3. **Provider discovery** — Implement OIDC auto-discovery for dynamic metadata resolution
 4. **Middleware** — Create a dynamic OIDC middleware factory for browser-based flows per provider
 5. **API** — Add federation routes for login, callback, linking, and provider management
-6. **Infrastructure** — Add Keycloak and Dex to docker-compose for local development
+6. **Infrastructure** — Add Logto and Dex to docker-compose for local development
 
-Total estimated effort: **11-17 days** across all phases. Core integration (Phases 1-3) can be completed in **7-10 days**.
+Core integration (Phases 1-3) covers the database schema, multi-provider token verification, and API routes.
