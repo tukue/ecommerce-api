@@ -8,10 +8,10 @@ This document describes the **federated identity feature** — a multi-provider 
 
 The federated identity system extends the original dual-mode auth (local HS256 + external RS256) into a **multi-provider OIDC federation**:
 
-| Auth Mode | Algorithm | Scope |
-|-----------|-----------|-------|
-| Local JWT | HS256 | First-party email/password users |
-| Federated OIDC | RS256 via JWKS | Any number of external IdPs |
+| Auth Mode      | Algorithm      | Scope                            |
+| -------------- | -------------- | -------------------------------- |
+| Local JWT      | HS256          | First-party email/password users |
+| Federated OIDC | RS256 via JWKS | Any number of external IdPs      |
 
 ### Architecture
 
@@ -61,33 +61,33 @@ The federated identity system extends the original dual-mode auth (local HS256 +
 
 **`identity_providers`** — stores provider configuration
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID | Primary key |
-| `name` | VARCHAR(100) | Unique identifier (e.g. `keycloak-prod`) |
-| `display_name` | VARCHAR(200) | User-facing label (e.g. "Company SSO") |
-| `provider_type` | VARCHAR(50) | `oidc`, `saml`, `oauth2` |
-| `issuer` | VARCHAR(255) | OIDC issuer URL (unique) |
-| `jwks_uri` | VARCHAR(255) | Null → auto-discovered |
-| `auth_endpoint` | VARCHAR(255) | Null → auto-discovered |
-| `token_endpoint` | VARCHAR(255) | Null → auto-discovered |
-| `client_id` | VARCHAR(255) | OIDC client ID |
-| `client_secret` | VARCHAR(255) | Encrypted at rest |
-| `scopes` | VARCHAR(255) | Default: `openid profile email` |
-| `enabled` | BOOLEAN | Toggle without deleting |
-| `config` | JSONB | Provider-specific overrides |
+| Column           | Type         | Description                              |
+| ---------------- | ------------ | ---------------------------------------- |
+| `id`             | UUID         | Primary key                              |
+| `name`           | VARCHAR(100) | Unique identifier (e.g. `keycloak-prod`) |
+| `display_name`   | VARCHAR(200) | User-facing label (e.g. "Company SSO")   |
+| `provider_type`  | VARCHAR(50)  | `oidc`, `saml`, `oauth2`                 |
+| `issuer`         | VARCHAR(255) | OIDC issuer URL (unique)                 |
+| `jwks_uri`       | VARCHAR(255) | Null → auto-discovered                   |
+| `auth_endpoint`  | VARCHAR(255) | Null → auto-discovered                   |
+| `token_endpoint` | VARCHAR(255) | Null → auto-discovered                   |
+| `client_id`      | VARCHAR(255) | OIDC client ID                           |
+| `client_secret`  | VARCHAR(255) | Encrypted at rest                        |
+| `scopes`         | VARCHAR(255) | Default: `openid profile email`          |
+| `enabled`        | BOOLEAN      | Toggle without deleting                  |
+| `config`         | JSONB        | Provider-specific overrides              |
 
 **`user_identities`** — links local users to IdP identities
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID | Primary key |
-| `user_id` | UUID | FK → users(id) |
-| `provider_id` | UUID | FK → identity_providers(id) |
-| `subject` | VARCHAR(512) | `sub` claim from IdP |
-| `email` | VARCHAR(255) | Email from IdP at link time |
-| `raw_claims` | JSONB | Snapshot of IdP claims |
-| `last_login_at` | TIMESTAMPTZ | Last successful login |
+| Column          | Type         | Description                 |
+| --------------- | ------------ | --------------------------- |
+| `id`            | UUID         | Primary key                 |
+| `user_id`       | UUID         | FK → users(id)              |
+| `provider_id`   | UUID         | FK → identity_providers(id) |
+| `subject`       | VARCHAR(512) | `sub` claim from IdP        |
+| `email`         | VARCHAR(255) | Email from IdP at link time |
+| `raw_claims`    | JSONB        | Snapshot of IdP claims      |
+| `last_login_at` | TIMESTAMPTZ  | Last successful login       |
 
 **Unique constraint:** `(provider_id, subject)` — prevents duplicate links.
 
@@ -164,7 +164,7 @@ services:
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     ports:
-      - "8080:8080"
+      - '8080:8080'
     depends_on:
       postgres:
         condition: service_healthy
@@ -174,7 +174,7 @@ services:
     volumes:
       - ./dex/config.yaml:/etc/dex/config.yaml:ro
     ports:
-      - "5556:5556"
+      - '5556:5556'
     depends_on:
       postgres:
         condition: service_healthy
@@ -185,10 +185,10 @@ services:
       LOGTO_ENDPOINT: http://localhost:3001
       ADMIN_ENDPOINT: http://localhost:3002
       DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/logto
-      TRUST_PROXY_HEADER: "true"
+      TRUST_PROXY_HEADER: 'true'
     ports:
-      - "3001:3001"
-      - "3002:3002"
+      - '3001:3001'
+      - '3002:3002'
     depends_on:
       postgres:
         condition: service_healthy
@@ -424,19 +424,19 @@ Response 200:
 
 ## Route Protection Matrix
 
-| Method | Endpoint | Auth | Admin |
-|--------|----------|------|-------|
-| GET | `/api/fed/providers` | — | — |
-| GET | `/api/fed/login/:provider` | — | — |
-| GET | `/api/fed/callback/:provider` | — | — |
-| POST | `/api/fed/logout` | Session | — |
-| POST | `/api/fed/link/:provider` | JWT | — |
-| DELETE | `/api/fed/link/:identityId` | JWT | — |
-| GET | `/api/fed/identities` | JWT | — |
-| POST | `/api/admin/fed/providers` | JWT | Yes |
-| PUT | `/api/admin/fed/providers/:id` | JWT | Yes |
-| DELETE | `/api/admin/fed/providers/:id` | JWT | Yes |
-| GET | `/api/admin/fed/providers` | JWT | Yes |
+| Method | Endpoint                       | Auth    | Admin |
+| ------ | ------------------------------ | ------- | ----- |
+| GET    | `/api/fed/providers`           | —       | —     |
+| GET    | `/api/fed/login/:provider`     | —       | —     |
+| GET    | `/api/fed/callback/:provider`  | —       | —     |
+| POST   | `/api/fed/logout`              | Session | —     |
+| POST   | `/api/fed/link/:provider`      | JWT     | —     |
+| DELETE | `/api/fed/link/:identityId`    | JWT     | —     |
+| GET    | `/api/fed/identities`          | JWT     | —     |
+| POST   | `/api/admin/fed/providers`     | JWT     | Yes   |
+| PUT    | `/api/admin/fed/providers/:id` | JWT     | Yes   |
+| DELETE | `/api/admin/fed/providers/:id` | JWT     | Yes   |
+| GET    | `/api/admin/fed/providers`     | JWT     | Yes   |
 
 ---
 
@@ -490,16 +490,17 @@ Steps 1-2 preserve full backward compatibility with the original auth system.
 
 `FederationService.provisionUser(provider, decodedToken)`
 
-| Scenario | Action |
-|----------|--------|
-| `sub` found in `user_identities` | Update `last_login_at`, return linked user |
-| `sub` not found, `email` not found in `users` | Create user + create `user_identities` row |
+| Scenario                                        | Action                                       |
+| ----------------------------------------------- | -------------------------------------------- |
+| `sub` found in `user_identities`                | Update `last_login_at`, return linked user   |
+| `sub` not found, `email` not found in `users`   | Create user + create `user_identities` row   |
 | `sub` not found, `email` exists on another user | Link `user_identities` to that existing user |
-| `sub` not found, no email in token | Return `null` (cannot provision) |
+| `sub` not found, no email in token              | Return `null` (cannot provision)             |
 
 ### Username generation
 
 For auto-provisioned users, the username is derived from:
+
 1. `preferred_username` claim (if present)
 2. `name` claim → lowercased, spaces → underscores
 3. `email` → prefix before `@`
@@ -567,7 +568,7 @@ connectors:
       bindPW: admin-password
       userSearch:
         baseDN: ou=users,dc=example,dc=com
-        filter: "(objectClass=person)"
+        filter: '(objectClass=person)'
         username: uid
         idAttr: uid
         emailAttr: mail
@@ -703,28 +704,28 @@ Leave `FED_PROVIDERS` unset (or empty array) and `FED_PROVIDER_DB_ENABLED=false`
 
 ## Key Files Reference
 
-| File | Purpose |
-|------|---------|
-| `services/federationService.js` | Multi-provider token verification, provider resolution |
-| `services/discoveryService.js` | OIDC well-known config discovery |
-| `services/linkingService.js` | User-to-identity link/unlink operations |
-| `services/authProvider.js` | Extended: multi-issuer JWKS client pool |
-| `repositories/federationRepository.js` | Data access for providers + user identities |
-| `controllers/federationController.js` | Federation endpoint handlers |
-| `routes/federationRoutes.js` | Federation route definitions |
-| `middleware/federatedAuth.js` | Dynamic express-openid-connect middleware factory |
-| `middleware/authMiddleWare.js` | Updated: delegates external verification to federation service |
-| `models/identityProvider.js` | Sequelize model |
-| `models/userIdentity.js` | Sequelize model |
-| `models/user.js` | Updated: hasMany UserIdentity association |
-| `utils/federationValidators.js` | Zod schemas for federation endpoints |
-| `config/federation.js` | Startup config loader |
-| `migrations/*-add-identity-providers.js` | Create identity_providers table |
-| `migrations/*-add-user-identities.js` | Create user_identities table |
-| `migrations/*-backfill-user-identities.js` | Migrate auth_subject data |
-| `migrations/*-drop-auth-subject.js` | Remove deprecated column |
-| `keycloak/realm-export.json` | Keycloak realm configuration |
-| `dex/config.yaml` | Dex configuration |
+| File                                       | Purpose                                                        |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `services/federationService.js`            | Multi-provider token verification, provider resolution         |
+| `services/discoveryService.js`             | OIDC well-known config discovery                               |
+| `services/linkingService.js`               | User-to-identity link/unlink operations                        |
+| `services/authProvider.js`                 | Extended: multi-issuer JWKS client pool                        |
+| `repositories/federationRepository.js`     | Data access for providers + user identities                    |
+| `controllers/federationController.js`      | Federation endpoint handlers                                   |
+| `routes/federationRoutes.js`               | Federation route definitions                                   |
+| `middleware/federatedAuth.js`              | Dynamic express-openid-connect middleware factory              |
+| `middleware/authMiddleWare.js`             | Updated: delegates external verification to federation service |
+| `models/identityProvider.js`               | Sequelize model                                                |
+| `models/userIdentity.js`                   | Sequelize model                                                |
+| `models/user.js`                           | Updated: hasMany UserIdentity association                      |
+| `utils/federationValidators.js`            | Zod schemas for federation endpoints                           |
+| `config/federation.js`                     | Startup config loader                                          |
+| `migrations/*-add-identity-providers.js`   | Create identity_providers table                                |
+| `migrations/*-add-user-identities.js`      | Create user_identities table                                   |
+| `migrations/*-backfill-user-identities.js` | Migrate auth_subject data                                      |
+| `migrations/*-drop-auth-subject.js`        | Remove deprecated column                                       |
+| `keycloak/realm-export.json`               | Keycloak realm configuration                                   |
+| `dex/config.yaml`                          | Dex configuration                                              |
 
 ---
 
@@ -732,13 +733,13 @@ Leave `FED_PROVIDERS` unset (or empty array) and `FED_PROVIDER_DB_ENABLED=false`
 
 ### Prometheus metrics
 
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
+| Metric                          | Type    | Labels               | Description                 |
+| ------------------------------- | ------- | -------------------- | --------------------------- |
 | `fed_token_verifications_total` | Counter | `provider`, `result` | Token verification attempts |
-| `fed_jwks_cache_hits_total` | Counter | `provider` | JWKS cache hits |
-| `fed_jwks_cache_misses_total` | Counter | `provider` | JWKS cache misses |
-| `fed_provisioning_total` | Counter | `action` | User provisioning events |
-| `fed_provider_health` | Gauge | `provider` | 1 = healthy, 0 = unhealthy |
+| `fed_jwks_cache_hits_total`     | Counter | `provider`           | JWKS cache hits             |
+| `fed_jwks_cache_misses_total`   | Counter | `provider`           | JWKS cache misses           |
+| `fed_provisioning_total`        | Counter | `action`             | User provisioning events    |
+| `fed_provider_health`           | Gauge   | `provider`           | 1 = healthy, 0 = unhealthy  |
 
 ### Logged events
 
@@ -784,30 +785,30 @@ Response 200:
 
 ## Security Considerations
 
-| Concern | Mitigation |
-|---------|------------|
-| Client secret exposure | Encrypted at rest in `identity_providers` using AES-256-GCM |
-| Rogue provider injection | Admin-only endpoints; audit log on every provider mutation |
-| Token replay | Short token expiry; `aud`/`azp` claim validation against `client_id` |
-| Cross-tenant sub collision | Composite unique index `(provider_id, subject)` |
-| JWKS cache poisoning | Validate JWKS response structure; in-memory cache with bounded TTL |
-| CSRF on callback | State parameter with cryptographic nonce validation |
-| Session hijacking | httpOnly + secure + sameSite cookies; session ID regeneration post-auth |
-| Issuer mismatch | Strict `iss` claim verification against stored provider issuer |
-| IdP outage | Health monitoring; `fed_provider_health` gauge; graceful 401 on verify failure (no crash) |
+| Concern                    | Mitigation                                                                                |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| Client secret exposure     | Encrypted at rest in `identity_providers` using AES-256-GCM                               |
+| Rogue provider injection   | Admin-only endpoints; audit log on every provider mutation                                |
+| Token replay               | Short token expiry; `aud`/`azp` claim validation against `client_id`                      |
+| Cross-tenant sub collision | Composite unique index `(provider_id, subject)`                                           |
+| JWKS cache poisoning       | Validate JWKS response structure; in-memory cache with bounded TTL                        |
+| CSRF on callback           | State parameter with cryptographic nonce validation                                       |
+| Session hijacking          | httpOnly + secure + sameSite cookies; session ID regeneration post-auth                   |
+| Issuer mismatch            | Strict `iss` claim verification against stored provider issuer                            |
+| IdP outage                 | Health monitoring; `fed_provider_health` gauge; graceful 401 on verify failure (no crash) |
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Likely Cause | Fix |
-|---------|--------------|-----|
-| `401 Unknown token issuer` | Token's `iss` claim doesn't match any `identity_providers.issuer` | Check the `iss` claim in the JWT; verify the provider's issuer URL is correct |
-| `401 Invalid token` | JWKS endpoint unreachable or `kid` not found | Verify the IdP is running; check `GET <issuer>/.well-known/openid-configuration` |
-| `302 redirect to /error` | OIDC callback failed (bad code or state mismatch) | Check that `redirect_uri` matches exactly what's registered in the IdP client |
-| User not auto-provisioned | Token has no `email` claim | Ensure `email` scope is requested; add email scope to provider config |
-| Wrong user linked | Email collision | Check `user_identities` for existing links; run the backfill migration |
-| Rate limited on login | Too many auth attempts | Wait 15 minutes or adjust `authSensitiveLimiter` in dev |
+| Symptom                    | Likely Cause                                                      | Fix                                                                              |
+| -------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `401 Unknown token issuer` | Token's `iss` claim doesn't match any `identity_providers.issuer` | Check the `iss` claim in the JWT; verify the provider's issuer URL is correct    |
+| `401 Invalid token`        | JWKS endpoint unreachable or `kid` not found                      | Verify the IdP is running; check `GET <issuer>/.well-known/openid-configuration` |
+| `302 redirect to /error`   | OIDC callback failed (bad code or state mismatch)                 | Check that `redirect_uri` matches exactly what's registered in the IdP client    |
+| User not auto-provisioned  | Token has no `email` claim                                        | Ensure `email` scope is requested; add email scope to provider config            |
+| Wrong user linked          | Email collision                                                   | Check `user_identities` for existing links; run the backfill migration           |
+| Rate limited on login      | Too many auth attempts                                            | Wait 15 minutes or adjust `authSensitiveLimiter` in dev                          |
 
 ---
 
@@ -838,9 +839,9 @@ npx sequelize-cli db:migrate --name 2026060x-drop-auth-subject
 
 ## Related Documents
 
-| Document | Description |
-|----------|-------------|
+| Document                                 | Description                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `docs/FEDERATED_IDENTITY_INTEGRATION.md` | Detailed analysis of provider options, architecture decisions, and implementation planning |
-| `docs/OAUTH_FLOW.md` | Original OAuth 2.0 / OIDC flow documentation |
-| `docs/ARCHITECTURE.md` | Overall system architecture |
-| `docs/PENDING_IMPROVEMENTS.md` | Prioritized improvement backlog |
+| `docs/OAUTH_FLOW.md`                     | Original OAuth 2.0 / OIDC flow documentation                                               |
+| `docs/ARCHITECTURE.md`                   | Overall system architecture                                                                |
+| `docs/PENDING_IMPROVEMENTS.md`           | Prioritized improvement backlog                                                            |

@@ -4,10 +4,10 @@
 
 The API implements a **dual-mode authentication system**:
 
-| Mode | Algorithm | Key Material | Provider |
-|------|-----------|-------------|----------|
-| Local JWT | HS256 | Symmetric secret (`JWT_SECRET`) | First-party |
-| External OAuth 2.0/OIDC | RS256 | JWKS endpoint | Auth0 (currently) |
+| Mode                    | Algorithm | Key Material                    | Provider          |
+| ----------------------- | --------- | ------------------------------- | ----------------- |
+| Local JWT               | HS256     | Symmetric secret (`JWT_SECRET`) | First-party       |
+| External OAuth 2.0/OIDC | RS256     | JWKS endpoint                   | Auth0 (currently) |
 
 ### Current architecture strengths
 
@@ -33,24 +33,24 @@ The API implements a **dual-mode authentication system**:
 
 ### Tier 1 — Full OIDC Compliance (drop-in compatible)
 
-| Provider | OIDC | JWKS | Auto-Discovery | MFA | Notes |
-|----------|------|------|----------------|-----|-------|
-| **Keycloak** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Most mature; Widest adoption; Easy docker-compose setup |
-| **Dex** (dexidp) | ✅ Full | ✅ | `/.well-known/openid-configuration` | ❌ | Lightweight; Connectors (LDAP, SAML, GitHub); K8s-native |
-| **Authentik** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | All-in-one; Flows engine; Excellent UI |
-| **Ory Hydra** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ❌ | OAuth 2.0 only (no user mgmt); Pair with Ory Kratos for identity |
-| **Zitadel** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Built-in RBAC; Audit logs; B2B multi-tenant |
-| **Casdoor** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Go-based; Built-in UI; Social logins built-in |
-| **Logto** | ✅ Full | ✅ | `/.well-known/openid-configuration` | ✅ | Developer-first; Node.js-native; SDKs; MFA; RBAC; Lowest integration friction |
+| Provider         | OIDC    | JWKS | Auto-Discovery                      | MFA | Notes                                                                         |
+| ---------------- | ------- | ---- | ----------------------------------- | --- | ----------------------------------------------------------------------------- |
+| **Keycloak**     | ✅ Full | ✅   | `/.well-known/openid-configuration` | ✅  | Most mature; Widest adoption; Easy docker-compose setup                       |
+| **Dex** (dexidp) | ✅ Full | ✅   | `/.well-known/openid-configuration` | ❌  | Lightweight; Connectors (LDAP, SAML, GitHub); K8s-native                      |
+| **Authentik**    | ✅ Full | ✅   | `/.well-known/openid-configuration` | ✅  | All-in-one; Flows engine; Excellent UI                                        |
+| **Ory Hydra**    | ✅ Full | ✅   | `/.well-known/openid-configuration` | ❌  | OAuth 2.0 only (no user mgmt); Pair with Ory Kratos for identity              |
+| **Zitadel**      | ✅ Full | ✅   | `/.well-known/openid-configuration` | ✅  | Built-in RBAC; Audit logs; B2B multi-tenant                                   |
+| **Casdoor**      | ✅ Full | ✅   | `/.well-known/openid-configuration` | ✅  | Go-based; Built-in UI; Social logins built-in                                 |
+| **Logto**        | ✅ Full | ✅   | `/.well-known/openid-configuration` | ✅  | Developer-first; Node.js-native; SDKs; MFA; RBAC; Lowest integration friction |
 
 ### Tier 2 — Compatible with adapter layer
 
-| Provider | Protocol | Integration Effort | Notes |
-|----------|----------|-------------------|-------|
-| **FusionAuth** (CE) | OAuth 2.0/OIDC | Low | JWKS + OIDC compliant; Community edition is free |
-| **ORY Kratos** | OAuth 2.0 + custom API | Medium | Identity + user management; Pairs with Hydra |
-| **Gluu Server** | OIDC/SAML/FIDO2 | Low | Full IAM suite; CE available |
-| **SimpleSAMLphp** | SAML 2.0 | High | SAML-only; Requires bridge/adapter |
+| Provider            | Protocol               | Integration Effort | Notes                                            |
+| ------------------- | ---------------------- | ------------------ | ------------------------------------------------ |
+| **FusionAuth** (CE) | OAuth 2.0/OIDC         | Low                | JWKS + OIDC compliant; Community edition is free |
+| **ORY Kratos**      | OAuth 2.0 + custom API | Medium             | Identity + user management; Pairs with Hydra     |
+| **Gluu Server**     | OIDC/SAML/FIDO2        | Low                | Full IAM suite; CE available                     |
+| **SimpleSAMLphp**   | SAML 2.0               | High               | SAML-only; Requires bridge/adapter               |
 
 ---
 
@@ -274,7 +274,7 @@ function createOidcMiddleware(provider) {
       audience: provider.audience,
     },
     routes: {
-      login: false,    // custom routes
+      login: false, // custom routes
       logout: false,
       callback: false,
     },
@@ -372,7 +372,7 @@ keycloak:
     KEYCLOAK_ADMIN: admin
     KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
   ports:
-    - "8080:8080"
+    - '8080:8080'
   depends_on:
     postgres:
       condition: service_healthy
@@ -407,7 +407,7 @@ connectors:
       bindPW: admin-password
       userSearch:
         baseDN: ou=users,dc=example,dc=com
-        filter: "(objectClass=person)"
+        filter: '(objectClass=person)'
         username: uid
         idAttr: uid
         emailAttr: mail
@@ -501,10 +501,10 @@ logto:
     LOGTO_ENDPOINT: http://localhost:3001
     ADMIN_ENDPOINT: http://localhost:3002
     DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/logto
-    TRUST_PROXY_HEADER: "true"
+    TRUST_PROXY_HEADER: 'true'
   ports:
-    - "3001:3001"
-    - "3002:3002"
+    - '3001:3001'
+    - '3002:3002'
   depends_on:
     postgres:
       condition: service_healthy
@@ -560,75 +560,75 @@ DELETE /api/fed/link/:provider/:identityId  (authenticated)
 
 ### Provisioning decisions
 
-| Scenario | Action |
-|----------|--------|
-| First login, `sub` not found, `email` not found | Create new user + link |
-| `sub` not found, `email` matches existing user | Link `sub`, return existing user |
-| `sub` matches existing user | Login (return user) |
-| `sub` matches but email differs | Trust the `sub` mapping (IdP is source of truth) |
+| Scenario                                        | Action                                           |
+| ----------------------------------------------- | ------------------------------------------------ |
+| First login, `sub` not found, `email` not found | Create new user + link                           |
+| `sub` not found, `email` matches existing user  | Link `sub`, return existing user                 |
+| `sub` matches existing user                     | Login (return user)                              |
+| `sub` matches but email differs                 | Trust the `sub` mapping (IdP is source of truth) |
 
 ---
 
 ## 10. Implementation Plan
 
-### Phase 1: Foundation 
+### Phase 1: Foundation
 
-| Task | Files | Description |
-|------|-------|-------------|
-| 1.1 Create `identity_providers` migration | `migrations/2026060x000000-add-identity-providers.js` | New table for provider config |
-| 1.2 Create `user_identities` migration | `migrations/2026060x000001-add-user-identities.js` | New table for user-idp links |
-| 1.3 Backfill migration | `migrations/2026060x000002-backfill-user-identities.js` | Migrate existing `authSubject` data |
-| 1.4 Drop `authSubject` migration | `migrations/2026060x000003-drop-auth-subject.js` | Remove old column |
-| 1.5 Create IdentityProvider model | `models/identityProvider.js` | Sequelize model |
-| 1.6 Create UserIdentity model | `models/userIdentity.js` | Sequelize model |
-| 1.7 Update User model | `models/user.js` | Add `hasMany UserIdentity` association |
+| Task                                      | Files                                                   | Description                            |
+| ----------------------------------------- | ------------------------------------------------------- | -------------------------------------- |
+| 1.1 Create `identity_providers` migration | `migrations/2026060x000000-add-identity-providers.js`   | New table for provider config          |
+| 1.2 Create `user_identities` migration    | `migrations/2026060x000001-add-user-identities.js`      | New table for user-idp links           |
+| 1.3 Backfill migration                    | `migrations/2026060x000002-backfill-user-identities.js` | Migrate existing `authSubject` data    |
+| 1.4 Drop `authSubject` migration          | `migrations/2026060x000003-drop-auth-subject.js`        | Remove old column                      |
+| 1.5 Create IdentityProvider model         | `models/identityProvider.js`                            | Sequelize model                        |
+| 1.6 Create UserIdentity model             | `models/userIdentity.js`                                | Sequelize model                        |
+| 1.7 Update User model                     | `models/user.js`                                        | Add `hasMany UserIdentity` association |
 
 ### Phase 2: Multi-Provider Core (estimated: 3-4 days)
 
-| Task | Files | Description |
-|------|-------|-------------|
-| 2.1 Extend authProvider | `services/authProvider.js` | Multi-issuer JWKS client pool |
-| 2.2 Create discovery service | `services/discoveryService.js` | OIDC auto-discovery |
-| 2.3 Create federation service | `services/federationService.js` | Provider resolution, token verification routing |
-| 2.4 Create user linking service | `services/linkingService.js` | Multi-identity link/unlink logic |
-| 2.5 Create federation middleware | `middleware/federatedAuth.js` | Dynamic OIDC middleware factory |
-| 2.6 Update auth middleware | `middleware/authMiddleWare.js` | Delegate to federation service for token verification |
+| Task                             | Files                           | Description                                           |
+| -------------------------------- | ------------------------------- | ----------------------------------------------------- |
+| 2.1 Extend authProvider          | `services/authProvider.js`      | Multi-issuer JWKS client pool                         |
+| 2.2 Create discovery service     | `services/discoveryService.js`  | OIDC auto-discovery                                   |
+| 2.3 Create federation service    | `services/federationService.js` | Provider resolution, token verification routing       |
+| 2.4 Create user linking service  | `services/linkingService.js`    | Multi-identity link/unlink logic                      |
+| 2.5 Create federation middleware | `middleware/federatedAuth.js`   | Dynamic OIDC middleware factory                       |
+| 2.6 Update auth middleware       | `middleware/authMiddleWare.js`  | Delegate to federation service for token verification |
 
 ### Phase 3: API & Routes
 
-| Task | Files | Description |
-|------|-------|-------------|
-| 3.1 Create federation routes | `routes/federationRoutes.js` | Login, callback, logout, link, unlink, list providers |
-| 3.2 Create federation controller | `controllers/federationController.js` | Request handling |
-| 3.3 Create federation validators | `utils/federationValidators.js` | Zod schemas |
-| 3.4 Create federation repository | `repositories/federationRepository.js` | Data access for providers + identities |
+| Task                             | Files                                  | Description                                           |
+| -------------------------------- | -------------------------------------- | ----------------------------------------------------- |
+| 3.1 Create federation routes     | `routes/federationRoutes.js`           | Login, callback, logout, link, unlink, list providers |
+| 3.2 Create federation controller | `controllers/federationController.js`  | Request handling                                      |
+| 3.3 Create federation validators | `utils/federationValidators.js`        | Zod schemas                                           |
+| 3.4 Create federation repository | `repositories/federationRepository.js` | Data access for providers + identities                |
 
 ### Phase 4: Frontend & UI (estimated: 1-2 days)
 
-| Task | Description |
-|------|-------------|
-| 4.1 Update login EJS | Provider selector ("Login with Keycloak", "Login with Dex", etc.) |
-| 4.2 Update profile EJS | "Linked Accounts" section (list, link, unlink) |
-| 4.3 Add callback redirect views | Post-authentication redirect handling |
+| Task                            | Description                                                       |
+| ------------------------------- | ----------------------------------------------------------------- |
+| 4.1 Update login EJS            | Provider selector ("Login with Keycloak", "Login with Dex", etc.) |
+| 4.2 Update profile EJS          | "Linked Accounts" section (list, link, unlink)                    |
+| 4.3 Add callback redirect views | Post-authentication redirect handling                             |
 
 ### Phase 5: Docker & DevOps (estimated: 1-2 days)
 
-| Task | Description |
-|------|-------------|
+| Task                               | Description                            |
+| ---------------------------------- | -------------------------------------- |
 | 5.1 Add Keycloak to docker-compose | Keycloak service + PostgreSQL database |
-| 5.2 Add Dex to docker-compose | Dex service + config |
-| 5.3 Add setup scripts | Realm/client configuration automation |
-| 5.4 Update CI | Smoke tests for federation flows |
+| 5.2 Add Dex to docker-compose      | Dex service + config                   |
+| 5.3 Add setup scripts              | Realm/client configuration automation  |
+| 5.4 Update CI                      | Smoke tests for federation flows       |
 
-### Phase 6: Testing 
+### Phase 6: Testing
 
-| Task | Files | Description |
-|------|-------|-------------|
-| 6.1 Federation service tests | `tests/federationService.test.js` | Multi-issuer verification, discovery |
-| 6.2 Federation middleware tests | `tests/federationMiddleware.test.js` | OIDC flow simulation |
-| 6.3 Federation controller tests | `tests/federationController.test.js` | Request→response cycle |
-| 6.4 User linking tests | `tests/linkingService.test.js` | Link/unlink/provision scenarios |
-| 6.5 Integration tests | `tests/federation.integration.test.js` | Full provider→token→user flow |
+| Task                            | Files                                  | Description                          |
+| ------------------------------- | -------------------------------------- | ------------------------------------ |
+| 6.1 Federation service tests    | `tests/federationService.test.js`      | Multi-issuer verification, discovery |
+| 6.2 Federation middleware tests | `tests/federationMiddleware.test.js`   | OIDC flow simulation                 |
+| 6.3 Federation controller tests | `tests/federationController.test.js`   | Request→response cycle               |
+| 6.4 User linking tests          | `tests/linkingService.test.js`         | Link/unlink/provision scenarios      |
+| 6.5 Integration tests           | `tests/federation.integration.test.js` | Full provider→token→user flow        |
 
 ---
 
@@ -663,15 +663,15 @@ const user = await federationService.verifyToken(token);
 
 ## 12. Security Considerations
 
-| Concern | Mitigation |
-|---------|------------|
-| Client secrets at rest | Encrypt `client_secret` in `identity_providers` table using AES-256-GCM with app-level key |
-| Provider impersonation | Validate `iss` claim matches the expected provider's issuer; Enforce HTTPS for all provider URIs |
-| JWKS cache poisoning | Validate JWKS response is valid JSON; Validate `kid` matches expected format; In-memory cache with TTL |
-| Token replay | Short token expiry (configurable); `azp`/`aud` claim validation |
-| Cross-tenant linking | User identity links are scoped to provider + subject; Prevent `sub` collision across providers via composite unique index |
-| Rogue provider injection | Admin-only API for managing identity providers; Audit logging on provider CRUD |
-| Session fixation | Regenerate session ID post-authentication; Use `sameSite: 'lax'` on cookies |
+| Concern                  | Mitigation                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Client secrets at rest   | Encrypt `client_secret` in `identity_providers` table using AES-256-GCM with app-level key                                |
+| Provider impersonation   | Validate `iss` claim matches the expected provider's issuer; Enforce HTTPS for all provider URIs                          |
+| JWKS cache poisoning     | Validate JWKS response is valid JSON; Validate `kid` matches expected format; In-memory cache with TTL                    |
+| Token replay             | Short token expiry (configurable); `azp`/`aud` claim validation                                                           |
+| Cross-tenant linking     | User identity links are scoped to provider + subject; Prevent `sub` collision across providers via composite unique index |
+| Rogue provider injection | Admin-only API for managing identity providers; Audit logging on provider CRUD                                            |
+| Session fixation         | Regenerate session ID post-authentication; Use `sameSite: 'lax'` on cookies                                               |
 
 ---
 
@@ -679,14 +679,14 @@ const user = await federationService.verifyToken(token);
 
 ### Metrics
 
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `fed_token_verifications_total` | Counter | `provider`, `result` (success/failure) | Total token verifications |
-| `fed_discovery_requests_total` | Counter | `provider`, `result` | OIDC discovery requests |
-| `fed_provisioning_actions_total` | Counter | `action` (create/link/skip) | User provisioning actions |
-| `fed_jwks_cache_hits_total` | Counter | `provider` | JWKS cache hit count |
-| `fed_jwks_cache_misses_total` | Counter | `provider` | JWKS cache miss count |
-| `fed_provider_health` | Gauge | `provider` | 1 = healthy, 0 = unhealthy |
+| Metric                           | Type    | Labels                                 | Description                |
+| -------------------------------- | ------- | -------------------------------------- | -------------------------- |
+| `fed_token_verifications_total`  | Counter | `provider`, `result` (success/failure) | Total token verifications  |
+| `fed_discovery_requests_total`   | Counter | `provider`, `result`                   | OIDC discovery requests    |
+| `fed_provisioning_actions_total` | Counter | `action` (create/link/skip)            | User provisioning actions  |
+| `fed_jwks_cache_hits_total`      | Counter | `provider`                             | JWKS cache hit count       |
+| `fed_jwks_cache_misses_total`    | Counter | `provider`                             | JWKS cache miss count      |
+| `fed_provider_health`            | Gauge   | `provider`                             | 1 = healthy, 0 = unhealthy |
 
 ### Logging
 
@@ -701,18 +701,18 @@ logger.info('Federated token verified', {
 
 ### Alerts
 
-| Alert | Condition | Severity |
-|-------|-----------|----------|
-| ProviderDown | `fed_provider_health == 0` for > 1min | Critical |
-| HighTokenVerificationFailures | `rate(fed_token_verifications_total{result="failure"}[5m]) > 10` | Warning |
-| DiscoveryFailure | `fed_discovery_requests_total{result="failure"}` > 0 | Warning |
+| Alert                         | Condition                                                        | Severity |
+| ----------------------------- | ---------------------------------------------------------------- | -------- |
+| ProviderDown                  | `fed_provider_health == 0` for > 1min                            | Critical |
+| HighTokenVerificationFailures | `rate(fed_token_verifications_total{result="failure"}[5m]) > 10` | Warning  |
+| DiscoveryFailure              | `fed_discovery_requests_total{result="failure"}` > 0             | Warning  |
 
 ---
 
 ## 14. docker-compose Additions
 
 ```yaml
-version: "3.9"
+version: '3.9'
 services:
   # ... existing app, postgres, prometheus, grafana, jaeger ...
 
@@ -731,12 +731,12 @@ services:
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     ports:
-      - "8080:8080"
+      - '8080:8080'
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/health/ready']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -746,7 +746,7 @@ services:
     volumes:
       - ./dex/config.yaml:/etc/dex/config.yaml:ro
     ports:
-      - "5556:5556"
+      - '5556:5556'
     depends_on:
       postgres:
         condition: service_healthy
@@ -757,10 +757,10 @@ services:
       LOGTO_ENDPOINT: http://localhost:3001
       ADMIN_ENDPOINT: http://localhost:3002
       DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/logto
-      TRUST_PROXY_HEADER: "true"
+      TRUST_PROXY_HEADER: 'true'
     ports:
-      - "3001:3001"
-      - "3002:3002"
+      - '3001:3001'
+      - '3002:3002'
     depends_on:
       postgres:
         condition: service_healthy
@@ -772,64 +772,64 @@ services:
 
 ### New files
 
-| File | Purpose |
-|------|---------|
-| `migrations/*-add-identity-providers.js` | Create identity_providers table |
-| `migrations/*-add-user-identities.js` | Create user_identities table |
-| `migrations/*-backfill-user-identities.js` | Backfill from auth_subject |
-| `migrations/*-drop-auth-subject.js` | Drop deprecated column |
-| `models/identityProvider.js` | Sequelize model |
-| `models/userIdentity.js` | Sequelize model |
-| `services/discoveryService.js` | OIDC auto-discovery |
-| `services/federationService.js` | Multi-provider token logic |
-| `services/linkingService.js` | Identity link/unlink logic |
-| `repositories/federationRepository.js` | Data access layer |
-| `controllers/federationController.js` | Request handling |
-| `routes/federationRoutes.js` | Route definitions |
-| `utils/federationValidators.js` | Zod schemas |
-| `middleware/federatedAuth.js` | Dynamic OIDC middleware |
-| `config/federation.js` | Federation config loader |
-| `tests/federationService.test.js` | Tests |
-| `tests/federationController.test.js` | Tests |
-| `tests/federationMiddleware.test.js` | Tests |
-| `tests/linkingService.test.js` | Tests |
-| `tests/federation.integration.test.js` | Integration tests |
-| `keycloak/realm-export.json` | Keycloak realm config |
-| `dex/config.yaml` | Dex config |
+| File                                       | Purpose                         |
+| ------------------------------------------ | ------------------------------- |
+| `migrations/*-add-identity-providers.js`   | Create identity_providers table |
+| `migrations/*-add-user-identities.js`      | Create user_identities table    |
+| `migrations/*-backfill-user-identities.js` | Backfill from auth_subject      |
+| `migrations/*-drop-auth-subject.js`        | Drop deprecated column          |
+| `models/identityProvider.js`               | Sequelize model                 |
+| `models/userIdentity.js`                   | Sequelize model                 |
+| `services/discoveryService.js`             | OIDC auto-discovery             |
+| `services/federationService.js`            | Multi-provider token logic      |
+| `services/linkingService.js`               | Identity link/unlink logic      |
+| `repositories/federationRepository.js`     | Data access layer               |
+| `controllers/federationController.js`      | Request handling                |
+| `routes/federationRoutes.js`               | Route definitions               |
+| `utils/federationValidators.js`            | Zod schemas                     |
+| `middleware/federatedAuth.js`              | Dynamic OIDC middleware         |
+| `config/federation.js`                     | Federation config loader        |
+| `tests/federationService.test.js`          | Tests                           |
+| `tests/federationController.test.js`       | Tests                           |
+| `tests/federationMiddleware.test.js`       | Tests                           |
+| `tests/linkingService.test.js`             | Tests                           |
+| `tests/federation.integration.test.js`     | Integration tests               |
+| `keycloak/realm-export.json`               | Keycloak realm config           |
+| `dex/config.yaml`                          | Dex config                      |
 
 ### Modified files
 
-| File | Change |
-|------|--------|
-| `models/user.js` | Add `hasMany UserIdentity` association; remove `authSubject` field (after migration) |
-| `models/index.js` | Register new models + associations |
-| `services/authProvider.js` | Support multi-issuer JWKS client pool |
-| `services/authService.js` | Delegate external provisioning to federation service |
-| `middleware/authMiddleWare.js` | Use federation service for token verification |
-| `config/env.js` | Add federation config env vars |
-| `.env.example` | Add federation env var stubs |
-| `app.js` | Mount federation routes; init federation config |
-| `docker-compose.yml` | Add Keycloak, Dex services |
-| `views/login.ejs` | Add provider selector buttons |
-| `views/profile.ejs` | Add linked accounts section |
-| `docs/OAUTH_FLOW.md` | Update to reflect multi-provider architecture |
+| File                           | Change                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| `models/user.js`               | Add `hasMany UserIdentity` association; remove `authSubject` field (after migration) |
+| `models/index.js`              | Register new models + associations                                                   |
+| `services/authProvider.js`     | Support multi-issuer JWKS client pool                                                |
+| `services/authService.js`      | Delegate external provisioning to federation service                                 |
+| `middleware/authMiddleWare.js` | Use federation service for token verification                                        |
+| `config/env.js`                | Add federation config env vars                                                       |
+| `.env.example`                 | Add federation env var stubs                                                         |
+| `app.js`                       | Mount federation routes; init federation config                                      |
+| `docker-compose.yml`           | Add Keycloak, Dex services                                                           |
+| `views/login.ejs`              | Add provider selector buttons                                                        |
+| `views/profile.ejs`            | Add linked accounts section                                                          |
+| `docs/OAUTH_FLOW.md`           | Update to reflect multi-provider architecture                                        |
 
 ---
 
 ## 16. Decision Matrix — Which Provider to Add First
 
-| Criteria | Keycloak | Dex | Authentik | Zitadel | Casdoor | Logto |
-|----------|----------|-----|-----------|---------|---------|-------|
-| docker-compose ease | ✅ Easy | ✅ Easy | ✅ Easy | ✅ Easy | ✅ Easy | ✅ Easy |
-| OIDC compliance | ✅ Full | ✅ Full | ✅ Full | ✅ Full | ✅ Full | ✅ Full |
-| MFA support | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| RBAC / role mapping | ✅ Built-in | ❌ (connector-based) | ✅ Built-in | ✅ Built-in | ✅ Built-in | ✅ Built-in |
-| Admin UI | ✅ | ❌ (CLI/API only) | ✅ | ✅ | ✅ | ✅ |
-| User management | ✅ | ❌ (uses connectors) | ✅ | ✅ | ✅ | ✅ |
-| Documentation quality | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Community size | Largest | Large | Medium | Medium | Small | Medium |
-| Resource footprint | Heavy (Java) | Light (Go) | Medium (Python) | Medium (Go) | Medium (Go) | Light (TS) |
-| **Node.js affinity** | ❌ (Java) | ❌ (Go) | ❌ (Python) | ❌ (Go) | ❌ (Go) | ✅ **Native (TS)** |
+| Criteria              | Keycloak     | Dex                  | Authentik       | Zitadel     | Casdoor     | Logto              |
+| --------------------- | ------------ | -------------------- | --------------- | ----------- | ----------- | ------------------ |
+| docker-compose ease   | ✅ Easy      | ✅ Easy              | ✅ Easy         | ✅ Easy     | ✅ Easy     | ✅ Easy            |
+| OIDC compliance       | ✅ Full      | ✅ Full              | ✅ Full         | ✅ Full     | ✅ Full     | ✅ Full            |
+| MFA support           | ✅           | ❌                   | ✅              | ✅          | ✅          | ✅                 |
+| RBAC / role mapping   | ✅ Built-in  | ❌ (connector-based) | ✅ Built-in     | ✅ Built-in | ✅ Built-in | ✅ Built-in        |
+| Admin UI              | ✅           | ❌ (CLI/API only)    | ✅              | ✅          | ✅          | ✅                 |
+| User management       | ✅           | ❌ (uses connectors) | ✅              | ✅          | ✅          | ✅                 |
+| Documentation quality | ⭐⭐⭐⭐⭐   | ⭐⭐⭐⭐             | ⭐⭐⭐⭐        | ⭐⭐⭐⭐    | ⭐⭐⭐      | ⭐⭐⭐⭐           |
+| Community size        | Largest      | Large                | Medium          | Medium      | Small       | Medium             |
+| Resource footprint    | Heavy (Java) | Light (Go)           | Medium (Python) | Medium (Go) | Medium (Go) | Light (TS)         |
+| **Node.js affinity**  | ❌ (Java)    | ❌ (Go)              | ❌ (Python)     | ❌ (Go)     | ❌ (Go)     | ✅ **Native (TS)** |
 
 **Recommendation: Logto (primary), Dex (secondary).**
 
