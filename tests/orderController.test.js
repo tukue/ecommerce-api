@@ -1,9 +1,6 @@
-// tests/orderController.test.js
-
-// Import the controller
 const orderController = require('../controllers/orderController');
+const container = require('../config/container');
 
-// Mock the models
 const mockReq = {
   models: {
     Order: {
@@ -27,10 +24,9 @@ describe('Order Controller', () => {
   let req, res;
 
   beforeEach(() => {
-    // Clear all mocks
+    container.clear();
     jest.clearAllMocks();
 
-    // Setup request and response
     req = {
       body: {
         userId: 1,
@@ -50,7 +46,6 @@ describe('Order Controller', () => {
 
   describe('createOrder', () => {
     it('should create order successfully', async () => {
-      // Setup
       const mockOrder = {
         id: 1,
         ...req.body,
@@ -60,10 +55,8 @@ describe('Order Controller', () => {
       req.models.User.findByPk.mockResolvedValue({ id: 1 });
       req.models.Product.findByPk.mockResolvedValue({ id: 1, price: 100 });
 
-      // Execute
       await orderController.createOrder(req, res);
 
-      // Assert
       expect(req.models.Order.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 1,
@@ -78,32 +71,26 @@ describe('Order Controller', () => {
     });
 
     it('should return 400 if required fields are missing', async () => {
-      // Setup
       req.body = {};
 
       const next = jest.fn();
 
-      // Execute
       await orderController.createOrder(req, res, next);
 
-      // Assert
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400 }));
     });
   });
 
   describe('getAllOrders', () => {
     it('should return all orders', async () => {
-      // Setup
       const mockOrders = [
         { id: 1, userId: 1, productId: 1 },
         { id: 2, userId: 2, productId: 2 },
       ];
       req.models.Order.findAll.mockResolvedValue(mockOrders);
 
-      // Execute
       await orderController.getAllOrders(req, res);
 
-      // Assert
       expect(req.models.Order.findAll).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockOrders);
@@ -112,14 +99,11 @@ describe('Order Controller', () => {
 
   describe('getOrderById', () => {
     it('should return order by id', async () => {
-      // Setup
       const mockOrder = { id: 1, userId: 1, productId: 1 };
       req.models.Order.findByPk.mockResolvedValue(mockOrder);
 
-      // Execute
       await orderController.getOrderById(req, res);
 
-      // Assert
       expect(req.models.Order.findByPk).toHaveBeenCalledWith(
         '1',
         expect.objectContaining({
@@ -131,21 +115,17 @@ describe('Order Controller', () => {
     });
 
     it('should return 404 if order not found', async () => {
-      // Setup
       req.models.Order.findByPk.mockResolvedValue(null);
       const next = jest.fn();
 
-      // Execute
       await orderController.getOrderById(req, res, next);
 
-      // Assert
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
     });
   });
 
   describe('updateOrder', () => {
     it('should update order successfully', async () => {
-      // Setup
       const mockOrder = {
         id: 1,
         quantity: 3,
@@ -158,10 +138,8 @@ describe('Order Controller', () => {
       });
       req.models.Order.update.mockResolvedValue([1]);
 
-      // Execute
       await orderController.updateOrder(req, res);
 
-      // Assert
       expect(req.models.Order.update).toHaveBeenCalled();
       expect(req.models.Order.findByPk).toHaveBeenLastCalledWith(
         '1',
@@ -173,42 +151,33 @@ describe('Order Controller', () => {
     });
 
     it('should return 404 if order not found', async () => {
-      // Setup
       req.models.Order.findByPk.mockResolvedValue(null);
 
       const next = jest.fn();
 
-      // Execute
       await orderController.updateOrder(req, res, next);
 
-      // Assert
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
     });
   });
 
   describe('deleteOrder', () => {
     it('should delete order successfully', async () => {
-      // Setup
       req.models.Order.findByPk.mockResolvedValue({ id: 1, userId: 1, product: { price: 100 } });
       req.models.Order.destroy.mockResolvedValue(1);
 
-      // Execute
       await orderController.deleteOrder(req, res);
 
-      // Assert
       expect(req.models.Order.destroy).toHaveBeenCalledWith({ where: { id: '1' } });
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('should return 404 if order not found', async () => {
-      // Setup
       req.models.Order.findByPk.mockResolvedValue(null);
       const next = jest.fn();
 
-      // Execute
       await orderController.deleteOrder(req, res, next);
 
-      // Assert
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
     });
   });
