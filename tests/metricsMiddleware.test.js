@@ -1,11 +1,11 @@
-const metricsMiddleware = require('../middleware/metricsMiddleware');
-
 jest.mock('../config/metrics', () => ({
   httpRequestDuration: { startTimer: jest.fn(() => jest.fn()) },
   httpRequestTotal: { inc: jest.fn() },
   inFlightRequests: { inc: jest.fn(), dec: jest.fn() },
   apiErrorTotal: { inc: jest.fn() },
 }));
+
+const metricsMiddleware = require('../middleware/metricsMiddleware');
 
 describe('metricsMiddleware', () => {
   let req, res, metrics;
@@ -21,7 +21,7 @@ describe('metricsMiddleware', () => {
     res = {
       statusCode: 200,
       on: jest.fn((event, cb) => {
-        if (event === 'finish') cb();
+        if (event === 'finish') { cb(); }
       }),
     };
   });
