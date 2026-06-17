@@ -32,12 +32,18 @@ describe('CheckoutService', () => {
 
     it('throws 400 when cart is empty array', async () => {
       await expect(service.createCheckoutSession([], user)).rejects.toThrow(HttpError);
-      await expect(service.createCheckoutSession([], user)).rejects.toMatchObject({ statusCode: 400 });
+      await expect(service.createCheckoutSession([], user)).rejects.toMatchObject({
+        statusCode: 400,
+      });
     });
 
     it('throws 400 when cart is not an array', async () => {
-      await expect(service.createCheckoutSession(null, user)).rejects.toMatchObject({ statusCode: 400 });
-      await expect(service.createCheckoutSession('invalid', user)).rejects.toMatchObject({ statusCode: 400 });
+      await expect(service.createCheckoutSession(null, user)).rejects.toMatchObject({
+        statusCode: 400,
+      });
+      await expect(service.createCheckoutSession('invalid', user)).rejects.toMatchObject({
+        statusCode: 400,
+      });
     });
 
     it('throws 400 when cart items lack productId', async () => {

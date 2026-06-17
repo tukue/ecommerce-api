@@ -61,7 +61,9 @@ router.get('/ready', async (req, res) => {
 
 router.get('/detailed', async (req, res) => {
   const [dbResult, stripeResult, authResult] = await Promise.allSettled([
-    checkDatabaseConnection().then(() => 'up').catch(() => 'down'),
+    checkDatabaseConnection()
+      .then(() => 'up')
+      .catch(() => 'down'),
     checkStripe(),
     checkExternalAuth(),
   ]);
@@ -72,7 +74,8 @@ router.get('/detailed', async (req, res) => {
     externalAuth: authResult.status === 'fulfilled' ? authResult.value : { status: 'error' },
   };
 
-  const allUp = checks.database === 'up' &&
+  const allUp =
+    checks.database === 'up' &&
     checks.stripe.status !== 'error' &&
     checks.externalAuth.status !== 'error';
 

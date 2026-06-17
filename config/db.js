@@ -17,7 +17,10 @@ if (env.nodeEnv === 'production') {
 const sequelize = new Sequelize(env.databaseUrl, {
   dialect: 'postgres',
   protocol: 'postgres',
-  logging: env.nodeEnv === 'development' ? (sql, timing) => logger.debug('sql_query', { sql, durationMs: timing }) : false,
+  logging:
+    env.nodeEnv === 'development'
+      ? (sql, timing) => logger.debug('sql_query', { sql, durationMs: timing })
+      : false,
   benchmark: true,
   pool: poolConfig,
   dialectOptions: {

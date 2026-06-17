@@ -21,7 +21,9 @@ describe('metricsMiddleware', () => {
     res = {
       statusCode: 200,
       on: jest.fn((event, cb) => {
-        if (event === 'finish') { cb(); }
+        if (event === 'finish') {
+          cb();
+        }
       }),
     };
   });

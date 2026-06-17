@@ -1,8 +1,11 @@
 const LEVELS = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
-const currentLevel = LEVELS[process.env.LOG_LEVEL] !== undefined ? LEVELS[process.env.LOG_LEVEL] : LEVELS.INFO;
+const currentLevel =
+  LEVELS[process.env.LOG_LEVEL] !== undefined ? LEVELS[process.env.LOG_LEVEL] : LEVELS.INFO;
 
 function serializeError(err) {
-  if (!(err instanceof Error)) { return err; }
+  if (!(err instanceof Error)) {
+    return err;
+  }
   return {
     name: err.name,
     message: err.message,
@@ -32,22 +35,30 @@ function shouldLog(level) {
 
 module.exports = {
   debug(message, extra = {}) {
-    if (!shouldLog('DEBUG')) { return; }
+    if (!shouldLog('DEBUG')) {
+      return;
+    }
     console.debug(format('DEBUG', message, extra));
   },
 
   info(message, extra = {}) {
-    if (!shouldLog('INFO')) { return; }
+    if (!shouldLog('INFO')) {
+      return;
+    }
     console.log(format('INFO', message, extra));
   },
 
   warn(message, extra = {}) {
-    if (!shouldLog('WARN')) { return; }
+    if (!shouldLog('WARN')) {
+      return;
+    }
     console.warn(format('WARN', message, extra));
   },
 
   error(message, extra = {}) {
-    if (!shouldLog('ERROR')) { return; }
+    if (!shouldLog('ERROR')) {
+      return;
+    }
     console.error(format('ERROR', message, extra));
   },
 
