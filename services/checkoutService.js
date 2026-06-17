@@ -10,6 +10,9 @@ const parseQuantity = (quantity) => {
 
 class CheckoutService {
   constructor(models) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is required');
+    }
     this.models = models;
   }
 
@@ -69,8 +72,9 @@ class CheckoutService {
         metadata: { userId: user.id.toString() },
       });
       stripeRequestTotal.inc({ operation: 'create_checkout_session', status: 'success' });
-    } catch {
+    } catch (error) {
       stripeRequestTotal.inc({ operation: 'create_checkout_session', status: 'error' });
+      console.error('Stripe checkout session creation failed:', error.message);
       throw new HttpError(502, 'Payment service error', 'PaymentGatewayError');
     }
 

@@ -24,7 +24,7 @@ const sequelize = new Sequelize(env.databaseUrl, {
   benchmark: true,
   pool: poolConfig,
   dialectOptions: {
-    ssl: env.nodeEnv === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: env.nodeEnv === 'production' ? { rejectUnauthorized: true } : false,
   },
 });
 
