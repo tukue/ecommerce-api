@@ -4,15 +4,20 @@ describe('timeoutMiddleware', () => {
   let req, res;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     req = {
       correlationId: 'test-correlation-id',
-      setTimeout: jest.fn(),
     };
     res = {
       headersSent: false,
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
+      on: jest.fn(),
     };
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('calls next immediately', () => {
@@ -25,22 +30,23 @@ describe('timeoutMiddleware', () => {
     const next = jest.fn();
     timeoutMiddleware(5000)(req, res, next);
 
-    expect(req.setTimeout).toHaveBeenCalledWith(5000, expect.any(Function));
+    expect(res.on).toHaveBeenCalledWith('finish', expect.any(Function));
+    expect(res.on).toHaveBeenCalledWith('close', expect.any(Function));
   });
 
   it('uses default timeout of 30000ms when not specified', () => {
     const next = jest.fn();
     timeoutMiddleware()(req, res, next);
 
-    expect(req.setTimeout).toHaveBeenCalledWith(30000, expect.any(Function));
+    expect(res.on).toHaveBeenCalledWith('finish', expect.any(Function));
+    expect(res.on).toHaveBeenCalledWith('close', expect.any(Function));
   });
 
   it('returns 503 with error json when timeout callback fires', () => {
     const next = jest.fn();
     timeoutMiddleware(100)(req, res, next);
 
-    const timeoutCallback = req.setTimeout.mock.calls[0][1];
-    timeoutCallback();
+    jest.advanceTimersByTime(100);
 
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.json).toHaveBeenCalledWith({
@@ -55,8 +61,7 @@ describe('timeoutMiddleware', () => {
     const next = jest.fn();
     timeoutMiddleware(100)(req, res, next);
 
-    const timeoutCallback = req.setTimeout.mock.calls[0][1];
-    timeoutCallback();
+    jest.advanceTimersByTime(100);
 
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
