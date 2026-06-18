@@ -1,19 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const { DataTypes } = require('sequelize');
 
 const sequelize = require('./config/db');
-const {
-  register,
-  httpRequestDuration,
-  httpRequestTotal,
-  inFlightRequests,
-  apiErrorTotal,
-} = require('./config/metrics');
+const { register } = require('./config/metrics');
 const requestContext = require('./middleware/requestContext');
 const requestLogger = require('./middleware/requestLogger');
 const telemetryMiddleware = require('./middleware/telemetry');
+const metricsMiddleware = require('./middleware/metricsMiddleware');
+const timeoutMiddleware = require('./middleware/timeout');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter, mutatingApiLimiter } = require('./middleware/authMiddleWare');
 
@@ -40,6 +37,7 @@ Product.associate({ Order });
 
 const app = express();
 
+app.use(compression());
 app.use(cors());
 app.use(
   helmet({
@@ -62,8 +60,9 @@ app.set('views', `${__dirname}/views`);
 app.use(requestContext);
 app.use(requestLogger);
 app.use(telemetryMiddleware());
+app.use(metricsMiddleware());
+app.use(timeoutMiddleware(30000));
 
-// Setup OIDC if browser session configuration is available.
 if (env.auth && env.auth.enabled) {
   const authProvider = require('./services/authProvider');
   authProvider.init(env.auth.issuer);
@@ -88,27 +87,6 @@ if (env.auth && env.auth.enabled && env.auth.clientId && env.auth.clientSecret) 
 
 app.use((req, res, next) => {
   req.models = { User, Product, Payment, Order };
-  next();
-});
-
-app.use((req, res, next) => {
-  const end = httpRequestDuration.startTimer();
-  inFlightRequests.inc();
-
-  res.on('finish', () => {
-    const route = req.route ? req.route.path : req.path;
-    const labels = { method: req.method, route, status_code: String(res.statusCode) };
-
-    end(labels);
-    httpRequestTotal.inc(labels);
-
-    if (res.statusCode >= 400) {
-      apiErrorTotal.inc({ route, method: req.method, status_code: String(res.statusCode) });
-    }
-
-    inFlightRequests.dec();
-  });
-
   next();
 });
 

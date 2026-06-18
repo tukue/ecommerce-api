@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
-const AuthService = require('../services/authService');
+const { getAuthService } = require('../config/container');
 const authProvider = require('../services/authProvider');
 
 const rateLimitMessage = (message) => ({
@@ -75,15 +75,13 @@ const authenticateExternalToken = async (req, token) => {
     audience: authAudience,
     issuer: authIssuer,
   });
-  const authService = new AuthService(req.models);
-  return authService.provisionUserFromToken(decoded);
+  return getAuthService(req.models).provisionUserFromToken(decoded);
 };
 
 const authMiddleware = async (req, res, next) => {
   try {
     if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
-      const authService = new AuthService(req.models);
-      const user = await authService.provisionUserFromOidc(req.oidc.user || {});
+      const user = await getAuthService(req.models).provisionUserFromOidc(req.oidc.user || {});
       if (!user) {
         return res.status(401).json({ message: 'User not found' });
       }
@@ -142,8 +140,7 @@ const adminMiddleware = (req, res, next) => {
 const optionalAuthMiddleware = async (req, res, next) => {
   try {
     if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
-      const authService = new AuthService(req.models);
-      const user = await authService.provisionUserFromOidc(req.oidc.user || {});
+      const user = await getAuthService(req.models).provisionUserFromOidc(req.oidc.user || {});
       if (user) {
         req.user = user;
       }

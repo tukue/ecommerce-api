@@ -14,6 +14,7 @@ jest.mock('stripe', () => () => ({
 
 process.env.JWT_SECRET = 'test-secret';
 process.env.JWT_EXPIRES_IN = '24h';
+process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
 
 const checkoutRoutes = require('../routes/checkoutRoutes');
 const { errorHandler } = require('../middleware/errorHandler');
