@@ -55,11 +55,26 @@ class AuthService {
 
     user = await this.repository.findByEmail(email);
     if (user) {
+      if (profile.email_verified !== true) {
+        throw new HttpError(
+          403,
+          'A verified provider email is required to link an existing account',
+          'UnverifiedEmailError',
+        );
+      }
       if (!user.authSubject && authSubject) {
         await this.repository.linkAuthSubject(user.id, authSubject);
         user.authSubject = authSubject;
       }
       return user;
+    }
+
+    if (profile.email_verified !== true) {
+      throw new HttpError(
+        403,
+        'A verified provider email is required to create an account',
+        'UnverifiedEmailError',
+      );
     }
 
     const usernameBase = profile.name

@@ -129,14 +129,21 @@ const tryAutoRefresh = async (req, res) => {
 
 function ms(str) {
   const match = str.match(/^(\d+)([smhd])$/);
-  if (!match) { return 3600000; }
+  if (!match) {
+    return 3600000;
+  }
   const n = parseInt(match[1], 10);
   switch (match[2]) {
-    case 's': return n * 1000;
-    case 'm': return n * 60000;
-    case 'h': return n * 3600000;
-    case 'd': return n * 86400000;
-    default: return 3600000;
+    case 's':
+      return n * 1000;
+    case 'm':
+      return n * 60000;
+    case 'h':
+      return n * 3600000;
+    case 'd':
+      return n * 86400000;
+    default:
+      return 3600000;
   }
 }
 
@@ -193,7 +200,9 @@ const authMiddleware = async (req, res, next) => {
                 return next();
               } catch (extError) {
                 if (extError.name === 'TokenExpiredError') {
-                  return res.status(401).json({ message: 'Token has expired. Please log in again.' });
+                  return res
+                    .status(401)
+                    .json({ message: 'Token has expired. Please log in again.' });
                 }
                 return res.status(401).json({ message: 'Invalid token. Please log in again.' });
               }

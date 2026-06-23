@@ -14,6 +14,7 @@ describe('AuthService external user provisioning', () => {
     const result = await service.provisionUserFromToken({
       sub: 'provider|123',
       email: user.email,
+      email_verified: true,
       name: 'Example User',
     });
 
@@ -43,6 +44,7 @@ describe('AuthService external user provisioning', () => {
     const result = await service.provisionUserFromOidc({
       sub: 'provider|new',
       email: createdUser.email,
+      email_verified: true,
       name: 'Example User',
     });
 
@@ -54,5 +56,28 @@ describe('AuthService external user provisioning', () => {
         authSubject: 'provider|new',
       }),
     );
+  });
+
+  it('rejects linking an existing account when the provider email is unverified', async () => {
+    const user = { id: 1, email: 'user@example.com', authSubject: null };
+    const models = {
+      User: {
+        findOne: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(user),
+        update: jest.fn(),
+      },
+    };
+    const service = new AuthService(models);
+
+    await expect(
+      service.provisionUserFromToken({
+        sub: 'provider|attacker',
+        email: user.email,
+        email_verified: false,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      name: 'UnverifiedEmailError',
+    });
+    expect(models.User.update).not.toHaveBeenCalled();
   });
 });

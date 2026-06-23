@@ -28,14 +28,21 @@ const clearTokenCookies = (res) => {
 
 function ms(str) {
   const match = str.match(/^(\d+)([smhd])$/);
-  if (!match) { return 3600000; }
+  if (!match) {
+    return 3600000;
+  }
   const n = parseInt(match[1], 10);
   switch (match[2]) {
-    case 's': return n * 1000;
-    case 'm': return n * 60000;
-    case 'h': return n * 3600000;
-    case 'd': return n * 86400000;
-    default: return 3600000;
+    case 's':
+      return n * 1000;
+    case 'm':
+      return n * 60000;
+    case 'h':
+      return n * 3600000;
+    case 'd':
+      return n * 86400000;
+    default:
+      return 3600000;
   }
 }
 
@@ -72,7 +79,12 @@ module.exports = {
     }
 
     const authService = getAuthService(req.models);
-    const decoded = authService.verifyRefreshToken(rawToken);
+    let decoded;
+    try {
+      decoded = authService.verifyRefreshToken(rawToken);
+    } catch {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
     const user = await authService.repository.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({ message: 'User not found' });

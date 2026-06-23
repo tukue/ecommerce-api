@@ -76,6 +76,7 @@ describe('authMiddleware', () => {
     const verifyToken = jest.fn().mockResolvedValue({
       sub: provisionedUser.authSubject,
       email: provisionedUser.email,
+      email_verified: true,
       name: 'External User',
     });
     const { authMiddleware } = loadMiddleware({ externalAuthEnabled: true, verifyToken });
