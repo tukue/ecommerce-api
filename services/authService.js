@@ -244,7 +244,11 @@ class AuthService {
   }
 
   verifyRefreshToken(token) {
-    return jwt.verify(token, env.jwtRefreshSecret);
+    try {
+      return jwt.verify(token, env.jwtRefreshSecret);
+    } catch (err) {
+      throw new HttpError(401, err.message, err.name);
+    }
   }
 
   sanitizeUser(user) {

@@ -79,12 +79,7 @@ module.exports = {
     }
 
     const authService = getAuthService(req.models);
-    let decoded;
-    try {
-      decoded = authService.verifyRefreshToken(rawToken);
-    } catch {
-      return res.status(401).json({ message: 'Invalid refresh token' });
-    }
+    const decoded = authService.verifyRefreshToken(rawToken);
     const user = await authService.repository.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
