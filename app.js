@@ -39,7 +39,15 @@ const app = express();
 
 app.use(compression());
 app.use(cors());
-app.use(require('cookie-parser')());
+app.use((req, res, next) => {
+  req.cookies = Object.fromEntries(
+    (req.headers.cookie || '').split(';').filter(Boolean).map((pair) => {
+      const [k, ...v] = pair.trim().split('=');
+      return [k.trim(), decodeURIComponent(v.join('='))];
+    }),
+  );
+  next();
+});
 app.use(
   helmet({
     contentSecurityPolicy: {

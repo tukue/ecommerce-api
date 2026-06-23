@@ -1,6 +1,5 @@
 const request = require('supertest');
 const express = require('express');
-const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const { Sequelize, DataTypes } = require('sequelize');
 const UserModel = require('../models/user');
@@ -37,7 +36,15 @@ Product.hasMany(Order, { foreignKey: 'productId', as: 'orders' });
 
 // Setup express app
 const app = express();
-app.use(cookieParser());
+app.use((req, res, next) => {
+  req.cookies = Object.fromEntries(
+    (req.headers.cookie || '').split(';').filter(Boolean).map((pair) => {
+      const [k, ...v] = pair.trim().split('=');
+      return [k.trim(), decodeURIComponent(v.join('='))];
+    }),
+  );
+  next();
+});
 app.use(bodyParser.json());
 app.use((req, res, next) => {
   req.models = { User, Order, Product };
