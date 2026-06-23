@@ -307,7 +307,7 @@ describe('Auth Controller', () => {
 
   describe('Refresh Token', () => {
     it('should issue new tokens from a valid refresh token', async () => {
-      const user = await User.create({
+      await User.create({
         username: 'refreshuser',
         email: 'refresh@example.com',
         password: 'Password123!',

@@ -129,7 +129,7 @@ const tryAutoRefresh = async (req, res) => {
 
 function ms(str) {
   const match = str.match(/^(\d+)([smhd])$/);
-  if (!match) return 3600000;
+  if (!match) { return 3600000; }
   const n = parseInt(match[1], 10);
   switch (match[2]) {
     case 's': return n * 1000;
