@@ -164,29 +164,19 @@ const scripts = {
 // Fetch profile
 async function fetchProfile() {
   try {
-    const token = localStorage.getItem('token'); // Retrieve the token from localStorage
-    if (!token) {
-      window.location.href = '/login'; // Redirect to login if no token is found
+    const response = await fetch('/api/auth/profile');
+
+    if (response.status === 401) {
+      window.location.href = '/login';
       return;
     }
 
-    const response = await fetch('/api/auth/profile', {
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the Authorization header
-      },
-    });
-
     if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem('token'); // Clear invalid token
-        window.location.href = '/login'; // Redirect to login
-        return;
-      }
       throw new Error('Failed to fetch profile');
     }
 
     const data = await response.json();
-    displayProfile(data.user); // Display the profile data
+    displayProfile(data.user);
   } catch (error) {
     console.error('Error fetching profile:', error);
     const container = document.getElementById('profile-container');
@@ -194,6 +184,15 @@ async function fetchProfile() {
       container.innerHTML = '<p class="error">Error loading profile. Please try again.</p>';
     }
   }
+}
+
+async function logout() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch {
+    // ignore
+  }
+  window.location.href = '/login';
 }
 
 function displayProfile(user) {

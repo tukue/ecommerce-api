@@ -6,39 +6,44 @@ This document explains the authentication architecture of the e-commerce API —
 
 ## Architecture Overview
 
+```mermaid
+flowchart TB
+    Browser["Browser / EJS frontend"]
+    APIClient["API client"]
+    Provider["Auth0 / OIDC provider"]
+
+    subgraph API["Express API"]
+        BrowserOIDC["express-openid-connect\n/login → /callback → cookie session\n/logout → session cleanup"]
+        LocalLogin["POST /api/auth/login\nbcrypt password verification\nissue access + refresh JWTs"]
+        Refresh["Auto-refresh or POST /api/auth/refresh\nrotate HTTP-only JWT cookies"]
+        Resolver["authMiddleware\nresolve identity and set req.user"]
+        LocalVerify["Verify local JWT\nJWT_SECRET + exp"]
+        ExternalVerify["Verify provider JWT\nRS256 + kid + issuer + audience"]
+        JIT["Provision/link local user\nsub → email → create"]
+        Protected["Protected route\noptional adminMiddleware"]
+    end
+
+    Browser --> LocalLogin
+    LocalLogin -->|"HTTP-only access + refresh cookies"| Browser
+    Browser --> BrowserOIDC
+    BrowserOIDC <-->|"Authorization Code redirect and callback"| Provider
+    BrowserOIDC -->|"encrypted session cookie"| Resolver
+    Browser -->|"Bearer local JWT"| Resolver
+    APIClient -->|"Bearer local or provider JWT"| Resolver
+    Resolver --> LocalVerify
+    LocalVerify -->|"valid"| Protected
+    LocalVerify -->|"expired cookie access token"| Refresh
+    Refresh --> Protected
+    LocalVerify -->|"invalid; external auth enabled"| ExternalVerify
+    ExternalVerify <-->|"cached JWKS lookup by kid"| Provider
+    Resolver -->|"OIDC user claims"| JIT
+    ExternalVerify -->|"verified token claims"| JIT
+    JIT --> Protected
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Client (SPA / Mobile / CLI)                    │
-│                                                                         │
-│  ┌──────────────────────┐    ┌──────────────────────────────────────┐   │
-│  │ Local Login           │    │ OAuth Login (redirect)              │   │
-│  │ POST /api/auth/login  │    │ /login ──► Auth0 ──► /callback      │   │
-│  └────────┬─────────────┘    └──────────┬───────────────────────────┘   │
-└───────────┼──────────────────────────────┼──────────────────────────────┘
-            │                              │
-            ▼                              ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                     Express Middleware Pipeline                          │
-│                                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌──────────┐  ┌─────────┐ │
-│  │CORS/     │  │Rate       │  │ Validate    │  │ Auth     │  │Admin    │ │
-│  │Helmet    │  │Limiter    │  │(Zod schema) │  │Middleware│  │Check    │ │
-│  └──────────┘  └──────────┘  └────────────┘  └──────────┘  └─────────┘ │
-└──────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-              ┌─────────────────────────────────────┐
-              │         authMiddleware               │
-              │  (verifies identity, sets req.user)  │
-              └─────────────────────────────────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    ▼                               ▼
-          ┌─────────────────┐             ┌───────────────────┐
-          │  Local Strategy   │             │  OAuth Strategy    │
-          │  (HS256 JWT)      │             │  (RS256 via JWKS)  │
-          └─────────────────┘             └───────────────────┘
-```
+
+The browser redirect flow uses Authorization Code through `express-openid-connect`. Callback `state`, OIDC `nonce`, code exchange, and ID-token validation are delegated to that middleware. PKCE is not configured directly in application code, so its effective use must be verified against the pinned middleware version and provider configuration.
+
+The local login flow is independent of OIDC. It uses short-lived HS256 access JWTs and longer-lived HS256 refresh JWTs in HTTP-only cookies. Refresh tokens are rotated on use, but the current implementation has no server-side token family, reuse detection, or revocation store.
 
 ---
 
@@ -339,7 +344,7 @@ When these variables are absent, `auth.enabled` is `false`, and the middleware s
 
 - **Asymmetric cryptography in practice** — JWKS-based RS256 verification without ever handling private keys
 - **Defense in depth** — rate limiting at multiple tiers, fallback between auth strategies, centralized error handling
-- **Stateless token verification** — no session store required; tokens carry all necessary information
+- **Hybrid session model** — bearer-token verification is stateless, while browser OIDC login uses an encrypted cookie session
 - **Zero-downtime key rotation** — new signing keys are picked up automatically from the JWKS endpoint
 - **Separation of concerns** — auth logic is cleanly layered across middleware, services, and repositories
 - **Production-aware defaults** — caching, rate limiting, graceful degradation when external providers are unavailable

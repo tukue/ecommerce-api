@@ -25,11 +25,17 @@ module.exports = {
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1h',
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   stripePublicKey: process.env.STRIPE_PUBLIC_KEY || '',
   otelEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://jaeger:4318',
   serviceName: process.env.OTEL_SERVICE_NAME || 'ecommerce-api',
   shutdownTimeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  },
   auth: {
     domain: authDomain,
     audience: authAudience,

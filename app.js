@@ -39,6 +39,7 @@ const app = express();
 
 app.use(compression());
 app.use(cors());
+app.use(require('cookie-parser')());
 app.use(
   helmet({
     contentSecurityPolicy: {

@@ -1,101 +1,111 @@
-# Auth Security Audit: OAuth 2.0 / OpenID Connect + Local JWT
+# Authentication Security Audit
 
 ## Architecture Summary
 
-Dual-mode authentication in a Node.js/Express ecommerce API:
+The API has three authentication paths:
 
-| Mode | Algorithm | Key Material | Purpose |
-|------|-----------|-------------|---------|
-| Local JWT | HS256 | Symmetric `JWT_SECRET` | First-party email/password users |
-| External OAuth 2.0 / OIDC | RS256 | JWKS public key | Auth0 (or any OIDC provider) tokens |
+1. Local email/password authentication issues short-lived HS256 access JWTs and longer-lived HS256 refresh JWTs.
+2. Browser OIDC login uses `express-openid-connect`, Authorization Code callbacks, and an encrypted cookie session.
+3. API clients can submit external RS256 access tokens, which are verified with the configured issuer, audience, and JWKS endpoint.
 
-Strategy: **local-first, external-fallback** in a single middleware pipeline. External auth is optional -- gated by `AUTH_DOMAIN` + `AUTH_AUDIENCE` env vars.
+Protected routes resolve credentials in this order: OIDC session, local access cookie, local bearer token, then external bearer token. A verified external identity is linked to or provisioned as a local `User`, and authorization uses `req.user` plus `adminMiddleware`.
 
----
+## Key Files and Functions
 
-## Key Files & Functions
+| File | Responsibility |
+| --- | --- |
+| `app.js` | Mounts cookie parsing and optional `express-openid-connect` routes: `/login`, `/callback`, `/logout` |
+| `config/env.js` | Local JWT, refresh JWT, cookie, issuer, audience, client, and callback-base configuration |
+| `middleware/authMiddleWare.js` | Credential resolution, access-cookie renewal, external fallback, rate limiting, admin authorization |
+| `services/authProvider.js` | RS256 verification using cached JWKS keys selected by `kid` |
+| `services/authService.js` | Password login, JWT signing, refresh verification, and external-user provisioning |
+| `controllers/authController.js` | Sets/clears cookies and implements register, login, refresh, logout, and profile handlers |
+| `routes/authRoutes.js` | `/register`, `/login`, `/refresh`, `/logout`, `/profile`, and password-reset routes |
+| `public/js/login.js` | Submits local credentials; JavaScript does not persist the returned token |
+| `public/js/scripts.js` | Makes cookie-authenticated profile and logout requests |
 
-| File | Role |
-|------|------|
-| `middleware/authMiddleWare.js` | Dual-mode auth middleware (OIDC session -> local HS256 -> external RS256), 4 rate limiters, admin guard |
-| `services/authProvider.js` | JWKS client init, `verifyToken()` RS256 via `jwks-rsa`, `verifyLocalToken()` HS256 |
-| `services/authService.js` | `register()`, `login()`, `signToken()`, `provisionExternalUser()`, password reset, `provisionUserFromOidc/Token()` |
-| `repositories/authRepository.js` | DB queries: `findByEmail`, `findByAuthSubject`, `linkAuthSubject`, `createUser` |
-| `controllers/authController.js` | Route handlers: register, login, getProfile, request/reset password |
-| `routes/authRoutes.js` | 5 endpoints with Zod validation + rate limiters |
-| `config/env.js` | Validates `JWT_SECRET` >= 32 chars, derives `auth.enabled`, `auth.issuer` |
-| `app.js:71-86` | Mounts `express-openid-connect` middleware (conditional), initializes JWKS |
-| `public/js/login.js` | Client: POST credentials -> stores returned JWT in **localStorage** |
-| `public/js/scripts.js` | Client: reads JWT from **localStorage** for `Authorization: Bearer` header; logout removes from localStorage |
-| `models/user.js` | Sequelize User model: bcrypt hooks, `authSubject` field for OIDC linking |
+## Step-by-Step Flows
 
----
+### Local login and renewal
 
-## Auth Flows
+1. The browser posts credentials to `/api/auth/login`.
+2. `AuthService.login()` verifies the bcrypt password hash.
+3. The service/controller are intended to create access and refresh JWTs.
+4. The controller sets HTTP-only, `SameSite=Strict` cookies; production cookies are marked `Secure`.
+5. `authMiddleware` verifies the access cookie and loads the user.
+6. If the access cookie is expired, `tryAutoRefresh()` verifies the refresh cookie and rotates both JWTs.
+7. `/api/auth/refresh` also performs explicit rotation.
+8. `/api/auth/logout` clears local cookies and attempts OIDC logout when an OIDC session exists.
 
-### Local Login (email/password)
-1. Client POSTs `{email, password}` to `/api/auth/login`
-2. `authService.login()` verifies via `bcrypt.compare()`
-3. Signs HS256 JWT: `{userId}` with `exp` = `JWT_EXPIRES_IN` (default 1h)
-4. Returns JWT to client -> stored in `localStorage`
-5. Subsequent requests attach `Authorization: Bearer <token>`
+### OIDC browser login
 
-### OIDC Browser Flow (via `express-openid-connect`)
-1. User hits `/login` -> middleware redirects to Auth0
-2. Auth0 authenticates -> redirects to `/callback` with auth code
-3. Middleware exchanges code for tokens, establishes encrypted cookie session
-4. `authMiddleware` checks `req.oidc.isAuthenticated()` -> provisions user via `provisionUserFromOidc()`
-5. User auto-provisioned locally (JIT) with `authSubject` = `sub` claim
+1. With complete OIDC client configuration, `express-openid-connect` owns `/login`.
+2. It redirects to the configured issuer and receives the Authorization Code response at `/callback`.
+3. The library validates callback state and OIDC nonce, exchanges the code, validates the ID token, and establishes an encrypted cookie session.
+4. `authMiddleware` reads `req.oidc.user`.
+5. `provisionExternalUser()` resolves by `sub`, falls back to email, and creates or links a local user.
 
-### External Token Verification (API clients / RS256)
-1. Request with `Authorization: Bearer <RS256 JWT>`
-2. Local HS256 verification fails -> falls through to external
-3. `authProvider.verifyToken()` decodes header, extracts `kid`, fetches matching JWK
-4. Verifies RS256 signature, validates `audience` + `issuer` claims
-5. Auto-provisions user via `provisionExternalUser()`
+PKCE is not configured directly in application code. Its effective use must be verified against the pinned `express-openid-connect` version and provider configuration.
 
----
+### External bearer token
+
+1. An API client sends `Authorization: Bearer <token>`.
+2. Local HS256 verification is attempted first.
+3. If it fails and external authentication is enabled, `authProvider.verifyToken()` reads `kid`.
+4. The matching public key is fetched from the issuer JWKS endpoint and cached.
+5. `jsonwebtoken` verifies RS256, issuer, audience, and expiration.
+6. The claims are used to resolve or provision the local user.
+
+## Token, Session, Scope, and Claims Handling
+
+| Item | Current behavior |
+| --- | --- |
+| Local access token | HS256 JWT containing `userId`; configured lifetime, currently documented as 15 minutes |
+| Local refresh token | HS256 JWT containing `userId` and `type: refresh`; configured lifetime, currently 7 days |
+| External access token | RS256 JWT verified per request with issuer, audience, algorithm, expiration, and JWKS key |
+| ID token | Validated and retained through `express-openid-connect`; normalized claims are exposed as `req.oidc.user` |
+| Browser storage | Local JWTs use HTTP-only cookies; OIDC uses the library's encrypted cookie session |
+| Server storage | No refresh-token/session family or revocation records are stored server-side |
+| OIDC scopes | Not explicitly configured in `app.js`; middleware/provider defaults apply |
+| Claims consumed | `sub`, `email`, and optionally `name`; authorization additionally uses the local database `role` |
 
 ## Security Findings
 
-| # | Finding | Severity | Location | Details |
-|---|---------|----------|----------|---------|
-| 1 | JWT stored in localStorage | **CRITICAL** | `public/js/login.js:33`, `profile.ejs:20` | Accessible to any JS (XSS -> token theft). No httpOnly cookie used. |
-| 2 | No refresh token mechanism | **HIGH** | `authService.js:217-219` | 1h JWTs with no refresh. Users forced to re-login on expiry. No silent renewal. |
-| 3 | Client-side logout does not invalidate OIDC session | **MEDIUM** | `profile.ejs:19-22` | Only removes localStorage token. `/logout` route exists but is not called server-side. |
-| 4 | No CSRF/state parameter validation for OIDC flow | **MEDIUM** | `app.js:71-86` | `express-openid-connect` handles state internally but no explicit verification documented. |
-| 5 | No PKCE for OAuth flow | **MEDIUM** | `app.js:71-86` | Authorization Code flow without PKCE. Uses client_secret instead. |
-| 6 | Plaintext `AUTH_CLIENT_SECRET` in config | **MEDIUM** | `config/env.js:37` | Client secret loaded into memory from env. No encryption at rest. |
-| 7 | Password reset has no email delivery | **LOW** | `authService.js:169-171` | Token generated but no email transport implemented. Flow is incomplete. |
-| 8 | Specific error messages leak info | **LOW** | `authMiddleWare.js:118-121` | Distinguishes expired vs invalid vs internal error. Enables probing. |
-| 9 | Rate limiting disabled in test mode | **LOW** | `authMiddleWare.js:11` | `NODE_ENV === 'test'` skip -- acceptable but must not leak to prod. |
+| Severity | Finding | Evidence and impact |
+| --- | --- | --- |
+| **High** | External identities are linked by unverified email | `provisionExternalUser()` links an existing account by `email` without requiring `email_verified`. A weak or malicious provider identity could claim a local account. |
+| **High** | Login/register do not currently return a refresh token from the service | Controllers expect `result.refreshToken`, but `AuthService.login()` and `register()` return only an access token. Refresh-cookie creation is therefore incomplete. |
+| **High** | Refresh rotation has no reuse detection or revocation | Old refresh JWTs remain valid until expiration because there is no server-side token family, hashed session record, version, or `jti` denylist. |
+| **Medium** | Tokens are returned in JSON despite HTTP-only cookies | Login/register/refresh responses expose raw access and refresh tokens to browser JavaScript, weakening the HTTP-only boundary. |
+| **Medium** | Refresh token class is not enforced | Refresh verification checks signature and expiration but does not require `type === "refresh"`. |
+| **Medium** | Refresh secret falls back to the access-token secret | `JWT_REFRESH_SECRET || JWT_SECRET` permits both token classes to share one key. |
+| **Medium** | OIDC configuration can be partially enabled | External token verification and browser OIDC require different subsets of variables; startup does not reject incomplete combinations. |
+| **Medium** | PKCE is not explicit or tested | Authorization Code details are delegated to the library, with no regression test proving S256 PKCE is used. |
+| **Medium** | Callback origin is configuration-trusted | `AUTH_BASE_URL` is not validated or forced to HTTPS in production. Exact provider-side redirect registration is required. |
+| **Medium** | Local refresh/logout endpoints lack explicit CSRF tokens | `SameSite=Strict` materially reduces cross-site requests, but origin checking or CSRF tokens would provide stronger protection and handle future cookie-policy changes. |
+| **Low** | OIDC scopes are implicit | The application assumes `email` is returned but does not explicitly request/document scopes and required claims. |
+| **Low** | Provider/JWKS failures become generic 500 responses | Availability failures are not distinguished from application errors or mapped to a controlled 503. |
+| **Low** | Password-reset delivery is incomplete | A token is generated and hashed, but no email delivery path is implemented. |
 
----
+No hardcoded production client secret was found. OIDC `state` and `nonce` validation are delegated to `express-openid-connect`; the repository does not disable them, but it also lacks callback-security integration tests.
 
 ## Recommended Fixes
 
-### P0 -- Critical
-1. **Replace localStorage with httpOnly cookies** -- Return JWT via `Set-Cookie` with `httpOnly`, `secure`, `sameSite=strict`. Use BFF (Backend-for-Frontend) pattern for SPA auth.
+1. Make `login()` and `register()` return a signed refresh token and add end-to-end cookie tests.
+2. Require `email_verified === true` before email-based linking, or require an authenticated account-link confirmation. Store issuer plus subject if multiple providers may be supported.
+3. Store hashed refresh-token families server-side, rotate transactionally, detect reuse, and revoke on logout and password reset.
+4. Remove raw tokens from browser JSON responses. If machine clients need token responses, expose a separate, explicit contract.
+5. Require a distinct `JWT_REFRESH_SECRET` and validate `type`, `iss`, `aud`, and `jti` claims.
+6. Validate complete auth modes at startup and require HTTPS callback/cookie configuration in production.
+7. Explicitly configure OIDC scopes and required claims.
+8. Confirm and test S256 PKCE, invalid/missing state, nonce mismatch, callback replay, issuer/audience mismatch, and redirect-origin rejection.
+9. Add Origin/Referer validation or CSRF tokens to cookie-authenticated state-changing endpoints.
+10. Use a deployed secret manager and document access-token, refresh-token, and OIDC-client-secret rotation.
 
-### P1 -- High
-2. **Implement refresh token rotation** -- Add `/api/auth/refresh`. Short-lived access tokens (15 min) + long-lived refresh tokens (7 days) stored as httpOnly cookies or DB with rotation.
-3. **Fix OIDC logout** -- Call `req.oidc.logout()` server-side. Add `/api/auth/logout` endpoint to clear OIDC session + invalidate cookie.
+## Questions and Assumptions
 
-### P2 -- Medium
-4. **Verify/force state + nonce** -- Ensure `express-openid-connect` config sets `state: true` and nonce is enabled for CSRF protection.
-5. **Enable PKCE** -- Configure PKCE even for confidential clients (defense in depth).
-6. **HTTPS enforcement** -- Add middleware to redirect HTTP -> HTTPS. Set `secure: true` on all cookies.
-
-### P3 -- Low
-7. **Generic error messages** -- Return uniform "Authentication failed" for all token validation errors. Log specifics server-side.
-8. **Add jti claim** -- Include unique token ID in JWTs for potential revocation tracking.
-9. **Key rotation for local JWTs** -- Support multiple valid `JWT_SECRET` values during rotation windows.
-
----
-
-## Questions & Assumptions
-- No email delivery is implemented for password reset -- the flow is incomplete
-- `express-openid-connect` v2.x assumed to validate `state`/`nonce` by default -- verify in `^2.7.0`
-- No session store configured (encrypted cookies only) -- multi-instance deployments need Redis
-- Single role model (`user`/`admin`) -- no granular permissions or scoped tokens
-- No MFA/2FA for local auth
+- The refresh-token implementation is currently uncommitted and appears incomplete at the service/controller boundary.
+- The installed OIDC middleware version/provider settings determine PKCE behavior.
+- External-provider refresh tokens are not requested or handled by application code.
+- The encrypted OIDC cookie is the only OIDC session store; no server-side session database is configured.
+- Local authorization is role-based (`user`/`admin`) rather than OAuth scope-based.

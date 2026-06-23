@@ -29,8 +29,6 @@ document.getElementById('login-form').addEventListener('submit', async (event) =
       throw new Error(errorData.message || 'Login failed');
     }
 
-    const data = await response.json();
-    localStorage.setItem('token', data.token);
     window.location.href = '/profile';
   } catch (error) {
     document.getElementById('error-message').textContent = error.message;

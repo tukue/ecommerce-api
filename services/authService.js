@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const HttpError = require('../utils/httpError');
 const AuthRepository = require('../repositories/authRepository');
+const env = require('../config/env');
 
 const MIN_JWT_SECRET_LENGTH = 32;
 const PASSWORD_REQUIREMENTS_MESSAGE =
@@ -204,7 +205,7 @@ class AuthService {
     }
   }
 
-  signToken(user) {
+  signToken(user, options = {}) {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       throw new Error('JWT_SECRET environment variable is not configured');
@@ -215,8 +216,18 @@ class AuthService {
     }
 
     return jwt.sign({ userId: user.id }, jwtSecret, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
+      expiresIn: options.expiresIn || process.env.JWT_EXPIRES_IN,
     });
+  }
+
+  signRefreshToken(user) {
+    return jwt.sign({ userId: user.id, type: 'refresh' }, env.jwtRefreshSecret, {
+      expiresIn: env.jwtRefreshExpiresIn,
+    });
+  }
+
+  verifyRefreshToken(token) {
+    return jwt.verify(token, env.jwtRefreshSecret);
   }
 
   sanitizeUser(user) {
