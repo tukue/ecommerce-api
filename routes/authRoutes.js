@@ -176,4 +176,8 @@ router.post(
   authController.resetPassword,
 );
 
+router.post('/logout', authMiddleware, authController.logout);
+
+router.post('/refresh', authController.refresh);
+
 module.exports = router;

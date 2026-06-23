@@ -23,14 +23,20 @@ flowchart TB
         APIClient["External API Consumer\n(cURL, Postman, mobile app)"]
     end
 
+    subgraph Identity["Identity"]
+        OIDC["Auth0 / OIDC Provider\nAuthorization Code callback\nRS256 access tokens + JWKS"]
+    end
+
     subgraph DockerHost["Docker Host"]
         direction TB
 
         subgraph AppContainer["app container (port 5004)"]
-            MW["Middleware Pipeline\ncorrelationId → Logger → JWT Auth\n→ Rate Limit → Telemetry"]
+            OIDCSession["express-openid-connect\n/login → /callback → encrypted cookie session\n/logout clears the OIDC session"]
+            MW["Middleware Pipeline\nrequest context → logging → telemetry\n→ rate limits → authentication/authorization"]
+            Auth["Authentication Resolver\n1. OIDC cookie session\n2. local HS256 access cookie/bearer JWT\n3. external RS256 bearer JWT"]
             Routes["Routes\n/auth /products /orders\n/checkout /payments /health"]
             Controllers["Controllers\n(orchestrate request/response)"]
-            Services["Services\n(business rules, validation)"]
+            Services["Services\nbusiness rules + JIT OIDC user provisioning"]
             Repos["Repositories\n(data access abstraction)"]
             Models["Sequelize ORM\nUser, Product, Order, Payment"]
         end
@@ -47,10 +53,16 @@ flowchart TB
         Stripe["Stripe API\n(payment processing,\ncheckout sessions)"]
     end
 
-    Browser -->|"HTTP (HTML pages)"| Routes
-    APIClient -->|"HTTP (JSON API)"| Routes
-    Routes --> MW
-    MW --> Controllers
+    Browser -->|"local login: credentials"| Routes
+    Browser -->|"OIDC login"| OIDCSession
+    OIDCSession <-->|"authorization redirect + code callback"| OIDC
+    OIDCSession --> MW
+    Browser -->|"HTTP-only access + refresh cookies"| MW
+    APIClient -->|"Bearer local or provider access token"| MW
+    MW --> Auth
+    Auth --> Controllers
+    Auth -->|"kid → cached public key"| OIDC
+    Routes --> Controllers
     Controllers --> Services
     Services --> Repos
     Repos --> Models
@@ -77,7 +89,7 @@ flowchart TB
     style HostMachine fill:#2a2a2a,color:#fff,stroke:#666
 ```
 
-**Request flow:** Client → Middleware pipeline (correlation ID, logging, JWT verification, rate limiting, tracing) → Routes → Controllers → Services → Repositories → ORM → PostgreSQL. Observability data (metrics, traces, logs) emitted at every layer.
+**Request flow:** Clients authenticate through local email/password JWT cookies, an OIDC browser session, or externally issued RS256 bearer tokens. Protected routes resolve those credentials in that order, rotate local tokens when an expired access cookie has a valid refresh cookie, set `req.user`, then continue through controllers → services → repositories → ORM → PostgreSQL. Observability data (metrics, traces, logs) is emitted around the request pipeline.
 
 ## Tech stack
 
@@ -85,7 +97,7 @@ flowchart TB
 | -------------------- | ------------------------------------------------------ |
 | **Runtime**          | Node.js 20, Express 4                                  |
 | **Database**         | PostgreSQL 15, Sequelize ORM 6                         |
-| **Auth**             | JWT, bcryptjs, express-rate-limit                      |
+| **Auth**             | JWT, bcryptjs, express-openid-connect, jwks-rsa        |
 | **Payments**         | Stripe API (checkout sessions)                         |
 | **Observability**    | Prometheus, Grafana, OpenTelemetry, Jaeger             |
 | **Frontend**         | EJS templates, vanilla JavaScript, CSS                 |
@@ -225,7 +237,7 @@ Client                          Express API                        Auth0 / OIDC 
 
 - **RS256 over HS256 for external tokens** — the API verifies tokens without ever holding the signing private key. Key rotation is handled automatically via JWKS.
 - **Local first** — avoids unnecessary JWKS fetches for first-party users. Expired tokens never fall through to external verification.
-- **Stateless** — no session store. Tokens are self-contained JWTs verified on every request.
+- **Hybrid state model** — bearer-token requests are stateless; browser OIDC login uses an encrypted cookie session managed by `express-openid-connect`.
 
 ### Key Files
 
@@ -235,6 +247,7 @@ Client                          Express API                        Auth0 / OIDC 
 | `services/authProvider.js`       | OAuth token verification via JWKS (RS256)                                |
 | `services/authService.js`        | Local auth (register, login, password reset), external user provisioning |
 | `repositories/authRepository.js` | Data access for user lookup, creation, auth subject linking              |
+| `app.js`                         | OIDC browser middleware, `/login`, `/callback`, and `/logout` mounting   |
 
 > See [`docs/OAUTH_FLOW.md`](docs/OAUTH_FLOW.md) for the full deep dive — JWKS key rotation, decision tree, route matrix, test coverage, and architecture rationale.
 

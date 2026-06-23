@@ -12,7 +12,9 @@ const crypto = require('crypto');
 
 // Mock environment variables
 process.env.JWT_SECRET = 'test-secret';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
 process.env.JWT_EXPIRES_IN = '24h';
+process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 
 // Create test database connection
 const sequelize = new Sequelize({
@@ -34,6 +36,18 @@ Product.hasMany(Order, { foreignKey: 'productId', as: 'orders' });
 
 // Setup express app
 const app = express();
+app.use((req, res, next) => {
+  req.cookies = Object.fromEntries(
+    (req.headers.cookie || '')
+      .split(';')
+      .filter(Boolean)
+      .map((pair) => {
+        const [k, ...v] = pair.trim().split('=');
+        return [k.trim(), decodeURIComponent(v.join('='))];
+      }),
+  );
+  next();
+});
 app.use(bodyParser.json());
 app.use((req, res, next) => {
   req.models = { User, Order, Product };
@@ -74,7 +88,8 @@ describe('Auth Controller', () => {
       expect(res.body.user.username).toBe(userData.username);
       expect(res.body.user.email).toBe(userData.email);
       expect(res.body.user.password).toBeUndefined();
-      expect(res.body.token).toBeDefined();
+      expect(res.body.token).toBeUndefined();
+      expect(res.body.refreshToken).toBeUndefined();
     });
 
     it('should not register a user with existing email', async () => {
@@ -115,7 +130,8 @@ describe('Auth Controller', () => {
       expect(res.body.user.username).toBe(userData.username);
       expect(res.body.user.email).toBe(userData.email);
       expect(res.body.user.password).toBeUndefined();
-      expect(res.body.token).toBeDefined();
+      expect(res.body.token).toBeUndefined();
+      expect(res.body.refreshToken).toBeUndefined();
     });
 
     it('should not login with invalid credentials', async () => {
@@ -296,6 +312,62 @@ describe('Auth Controller', () => {
 
       expect(user1Login.statusCode).toBe(200);
       expect(user2Login.statusCode).toBe(200);
+    });
+  });
+
+  describe('Refresh Token', () => {
+    it('should issue new tokens from a valid refresh token', async () => {
+      await User.create({
+        username: 'refreshuser',
+        email: 'refresh@example.com',
+        password: 'Password123!',
+      });
+
+      const agent = request.agent(app);
+
+      const loginRes = await agent
+        .post('/api/auth/login')
+        .send({ email: 'refresh@example.com', password: 'Password123!' });
+
+      expect(loginRes.statusCode).toBe(200);
+      expect(loginRes.body.token).toBeUndefined();
+      expect(loginRes.body.refreshToken).toBeUndefined();
+
+      const refreshRes = await agent.post('/api/auth/refresh').send({});
+
+      expect(refreshRes.statusCode).toBe(200);
+      expect(refreshRes.body.message).toBe('Token refreshed successfully');
+      expect(refreshRes.body.token).toBeUndefined();
+      expect(refreshRes.body.refreshToken).toBeUndefined();
+    });
+
+    it('should reject an invalid refresh token', async () => {
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: 'invalid-token' });
+
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
+  describe('Logout', () => {
+    it('should clear cookies and return success', async () => {
+      const user = await User.create({
+        username: 'logoutuser',
+        email: 'logout@example.com',
+        password: 'Password123!',
+      });
+
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      });
+
+      const res = await request(app)
+        .post('/api/auth/logout')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.message).toBe('Logged out successfully');
     });
   });
 });

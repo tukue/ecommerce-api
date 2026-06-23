@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { getAuthService } = require('../config/container');
 const authProvider = require('../services/authProvider');
+const env = require('../config/env');
 
 const rateLimitMessage = (message) => ({
   error: 'RateLimitExceeded',
@@ -60,6 +61,14 @@ const getBearerToken = (req) => {
   return authHeader.split(' ')[1];
 };
 
+const getCookieToken = (req) => {
+  return req.cookies?.token || null;
+};
+
+const getCookieRefreshToken = (req) => {
+  return req.cookies?.refreshToken || null;
+};
+
 const authenticateLocalToken = async (req, token) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const user = await req.models.User.findByPk(decoded.userId);
@@ -78,6 +87,66 @@ const authenticateExternalToken = async (req, token) => {
   return getAuthService(req.models).provisionUserFromToken(decoded);
 };
 
+const tryAutoRefresh = async (req, res) => {
+  const refreshToken = getCookieRefreshToken(req);
+  if (!refreshToken) {
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, env.jwtRefreshSecret);
+    const user = await req.models.User.findByPk(decoded.userId);
+    if (!user) {
+      return null;
+    }
+
+    const authService = getAuthService(req.models);
+    const newToken = authService.signToken(user);
+    const newRefreshToken = authService.signRefreshToken(user);
+
+    const cookieOpts = {
+      httpOnly: true,
+      secure: env.cookie.secure,
+      sameSite: env.cookie.sameSite,
+      path: '/',
+    };
+
+    res.cookie('token', newToken, {
+      ...cookieOpts,
+      maxAge: ms(env.jwtExpiresIn),
+    });
+
+    res.cookie('refreshToken', newRefreshToken, {
+      ...cookieOpts,
+      maxAge: ms(env.jwtRefreshExpiresIn),
+    });
+
+    return user;
+  } catch {
+    return null;
+  }
+};
+
+function ms(str) {
+  const match = str.match(/^(\d+)([smhd])$/);
+  if (!match) {
+    return 3600000;
+  }
+  const n = parseInt(match[1], 10);
+  switch (match[2]) {
+    case 's':
+      return n * 1000;
+    case 'm':
+      return n * 60000;
+    case 'h':
+      return n * 3600000;
+    case 'd':
+      return n * 86400000;
+    default:
+      return 3600000;
+  }
+}
+
 const authMiddleware = async (req, res, next) => {
   try {
     if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
@@ -87,6 +156,62 @@ const authMiddleware = async (req, res, next) => {
       }
       req.user = user;
       return next();
+    }
+
+    const cookieToken = getCookieToken(req);
+    if (cookieToken) {
+      try {
+        const user = await authenticateLocalToken(req, cookieToken);
+        if (!user) {
+          return res.status(401).json({ message: 'User not found' });
+        }
+        req.user = user;
+        return next();
+      } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+          const refreshedUser = await tryAutoRefresh(req, res);
+          if (refreshedUser) {
+            req.user = refreshedUser;
+            return next();
+          }
+          return res.status(401).json({ message: 'Token has expired. Please log in again.' });
+        }
+        if (error.name === 'JsonWebTokenError') {
+          const bearerToken = getBearerToken(req);
+          if (bearerToken) {
+            try {
+              const user = await authenticateLocalToken(req, bearerToken);
+              if (!user) {
+                return res.status(401).json({ message: 'User not found' });
+              }
+              req.user = user;
+              return next();
+            } catch {
+              // fall through to external
+            }
+
+            if (isExternalAuthEnabled) {
+              try {
+                const user = await authenticateExternalToken(req, bearerToken);
+                if (!user) {
+                  return res.status(401).json({ message: 'User not found' });
+                }
+                req.user = user;
+                return next();
+              } catch (extError) {
+                if (extError.name === 'TokenExpiredError') {
+                  return res
+                    .status(401)
+                    .json({ message: 'Token has expired. Please log in again.' });
+                }
+                return res.status(401).json({ message: 'Invalid token. Please log in again.' });
+              }
+            }
+          }
+          return res.status(401).json({ message: 'Invalid token. Please log in again.' });
+        }
+        throw error;
+      }
     }
 
     const token = getBearerToken(req);
@@ -145,6 +270,27 @@ const optionalAuthMiddleware = async (req, res, next) => {
         req.user = user;
       }
       return next();
+    }
+
+    const cookieToken = getCookieToken(req);
+    if (cookieToken) {
+      try {
+        const user = await authenticateLocalToken(req, cookieToken);
+        if (user) {
+          req.user = user;
+          return next();
+        }
+      } catch {
+        try {
+          const refreshedUser = await tryAutoRefresh(req, res);
+          if (refreshedUser) {
+            req.user = refreshedUser;
+            return next();
+          }
+        } catch {
+          // ignore
+        }
+      }
     }
 
     const token = getBearerToken(req);
