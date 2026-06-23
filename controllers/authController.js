@@ -46,8 +46,6 @@ module.exports = {
     res.status(201).json({
       message: result.message,
       user: result.user,
-      token: result.token,
-      refreshToken: result.refreshToken,
     });
   }),
 
@@ -56,8 +54,6 @@ module.exports = {
     setTokenCookies(res, result.token, result.refreshToken);
     res.status(200).json({
       user: result.user,
-      token: result.token,
-      refreshToken: result.refreshToken,
     });
   }),
 
@@ -86,7 +82,7 @@ module.exports = {
     const refreshToken = authService.signRefreshToken(user);
     setTokenCookies(res, token, refreshToken);
 
-    res.status(200).json({ token, refreshToken });
+    res.status(200).json({ message: 'Token refreshed successfully' });
   }),
 
   getProfile: asyncHandler(async (req, res) => {

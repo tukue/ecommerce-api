@@ -78,7 +78,8 @@ describe('Auth Controller', () => {
       expect(res.body.user.username).toBe(userData.username);
       expect(res.body.user.email).toBe(userData.email);
       expect(res.body.user.password).toBeUndefined();
-      expect(res.body.token).toBeDefined();
+      expect(res.body.token).toBeUndefined();
+      expect(res.body.refreshToken).toBeUndefined();
     });
 
     it('should not register a user with existing email', async () => {
@@ -119,7 +120,8 @@ describe('Auth Controller', () => {
       expect(res.body.user.username).toBe(userData.username);
       expect(res.body.user.email).toBe(userData.email);
       expect(res.body.user.password).toBeUndefined();
-      expect(res.body.token).toBeDefined();
+      expect(res.body.token).toBeUndefined();
+      expect(res.body.refreshToken).toBeUndefined();
     });
 
     it('should not login with invalid credentials', async () => {
@@ -311,21 +313,22 @@ describe('Auth Controller', () => {
         password: 'Password123!',
       });
 
-      const loginRes = await request(app)
+      const agent = request.agent(app);
+
+      const loginRes = await agent
         .post('/api/auth/login')
         .send({ email: 'refresh@example.com', password: 'Password123!' });
 
       expect(loginRes.statusCode).toBe(200);
-      expect(loginRes.body.refreshToken).toBeDefined();
-      expect(loginRes.body.token).toBeDefined();
+      expect(loginRes.body.token).toBeUndefined();
+      expect(loginRes.body.refreshToken).toBeUndefined();
 
-      const refreshRes = await request(app)
-        .post('/api/auth/refresh')
-        .send({ refreshToken: loginRes.body.refreshToken });
+      const refreshRes = await agent.post('/api/auth/refresh').send({});
 
       expect(refreshRes.statusCode).toBe(200);
-      expect(refreshRes.body.token).toBeDefined();
-      expect(refreshRes.body.refreshToken).toBeDefined();
+      expect(refreshRes.body.message).toBe('Token refreshed successfully');
+      expect(refreshRes.body.token).toBeUndefined();
+      expect(refreshRes.body.refreshToken).toBeUndefined();
     });
 
     it('should reject an invalid refresh token', async () => {

@@ -111,6 +111,7 @@ class AuthService {
       message: 'Registration successful! Welcome to our platform.',
       user: this.sanitizeUser(user),
       token: this.signToken(user),
+      refreshToken: this.signRefreshToken(user),
     };
   }
 
@@ -129,6 +130,7 @@ class AuthService {
     return {
       user: this.sanitizeUser(user),
       token: this.signToken(user),
+      refreshToken: this.signRefreshToken(user),
     };
   }
 
