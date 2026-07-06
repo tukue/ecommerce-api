@@ -24,10 +24,14 @@ async function ensureMetaTable(queryInterface) {
 }
 
 async function getAppliedMigrations(queryInterface) {
-  const rows = await queryInterface.select(null, metaTable, {
-    attributes: ['name'],
-    order: [['name', 'ASC']],
-  });
+  const rows = await queryInterface.select(
+    null,
+    metaTable,
+    {
+      attributes: ['name'],
+      order: [['name', 'ASC']],
+    },
+  );
   return new Set(rows.map((row) => row.name));
 }
 
