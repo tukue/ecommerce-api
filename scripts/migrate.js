@@ -24,20 +24,18 @@ async function ensureMetaTable(queryInterface) {
 }
 
 async function getAppliedMigrations(queryInterface) {
-  const rows = await queryInterface.select(
-    null,
-    metaTable,
-    {
-      attributes: ['name'],
-      order: [['name', 'ASC']],
-    },
-  );
+  const rows = await queryInterface.select(null, metaTable, {
+    attributes: ['name'],
+    order: [['name', 'ASC']],
+  });
   return new Set(rows.map((row) => row.name));
 }
 
 async function tableExists(queryInterface, tableName) {
   const tables = await queryInterface.showAllTables();
-  return tables.map((table) => (typeof table === 'object' ? table.tableName : table)).includes(tableName);
+  return tables
+    .map((table) => (typeof table === 'object' ? table.tableName : table))
+    .includes(tableName);
 }
 
 async function run() {
@@ -49,7 +47,8 @@ async function run() {
   }
 
   const applied = await getAppliedMigrations(queryInterface);
-  const migrationFiles = fs.readdirSync(migrationsDir)
+  const migrationFiles = fs
+    .readdirSync(migrationsDir)
     .filter((file) => file.endsWith('.js'))
     .sort();
 
