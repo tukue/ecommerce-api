@@ -6,9 +6,9 @@ This plan breaks the backend portfolio improvements into small, verifiable steps
 
 ### Step 1. Lock in database schema management
 
-- Replace `sequelize.sync({ alter: ... })` with migrations.
-- Add a migration runner and document how to apply migrations locally and in CI.
-- Verify that startup no longer mutates schema automatically.
+- Completed: startup now checks DB connectivity without mutating schema.
+- Completed: `npm run migrate` applies versioned migrations from `migrations/`.
+- Completed: CI validates migrations against PostgreSQL before backend tests.
 
 ### Step 2. Keep CI focused and reliable
 

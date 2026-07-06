@@ -71,26 +71,24 @@ db_scripts.md
 
 **Current State**:
 
-- `server.js` uses `sequelize.sync({ alter: true })`
-- This auto-modifies schema on startup - DANGEROUS in production
+- `server.js` now checks database connectivity and verifies migrations were applied
+- Schema changes are applied explicitly through `npm run migrate`
 - No migration files, no version control for schema changes
 
 **Required Changes**:
 
 1. Install `sequelize-cli` as dev dependency
 2. Create `.sequelizerc` config
-3. Create initial migration for existing schema
-4. Remove `sequelize.sync({ alter: true })` from startup
-5. Add migration commands to package.json
+3. Keep initial migrations reviewed and versioned
+4. Keep startup free of schema auto-modification
+5. Run `npm run migrate` before application startup in CI/deployment
 
 **Migration Commands to Add**:
 
 ```json
 {
   "scripts": {
-    "migrate": "npx sequelize-cli db:migrate",
-    "migrate:undo": "npx sequelize-cli db:migrate:undo",
-    "migrate:create": "npx sequelize-cli migration:generate --name"
+    "migrate": "node scripts/migrate.js"
   }
 }
 ```
@@ -705,8 +703,8 @@ Before this API can be considered production-ready:
 2. **Architecture**:
    - [x] All controllers use consistent asyncHandler pattern
    - [x] Services and repositories for all primary domains
-   - [ ] Database migrations instead of sync
-   - [ ] No schema auto-modification on startup
+   - [x] Database migrations instead of sync
+   - [x] No schema auto-modification on startup
 
 3. **Quality**:
    - [ ] ESLint configured and passing

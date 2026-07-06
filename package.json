@@ -4,12 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "migrate": "node scripts/migrate.js",
     "test": "npm run test:backend -- --runInBand && npm run test:frontend -- --runInBand",
     "test:backend": "jest --config jest.backend.config.js",
     "test:frontend": "jest --config jest.frontend.config.js",
-    "migrate": "npx sequelize-cli db:migrate",
-    "migrate:undo": "npx sequelize-cli db:migrate:undo",
-    "migrate:create": "npx sequelize-cli migration:generate --name",
     "generate-load": "node scripts/generate_load.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

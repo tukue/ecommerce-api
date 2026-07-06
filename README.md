@@ -131,6 +131,7 @@ Prerequisites: Node.js 20+, PostgreSQL running locally.
 ```bash
 cp .env.example .env        # configure DB URL, JWT_SECRET, Stripe keys
 npm ci                      # install dependencies
+npm run migrate             # apply pending database migrations
 node server.js              # starts on {BASE_URL}:{APP_PORT}
 ```
 
@@ -305,7 +306,7 @@ Grafana is pre-provisioned with dashboards under `grafana/provisioning/dashboard
 | -------------- | ------------------------------------------------------------------ |
 | Config         | Environment-based config with required variable validation         |
 | Error handling | Centralized handler with consistent JSON error envelopes           |
-| Reliability    | Graceful shutdown (SIGINT/SIGTERM) — HTTP server, DB pool, tracer  |
+| Reliability    | Explicit migrations, graceful shutdown, DB pool, tracer cleanup    |
 | Security       | JWT auth, bcrypt passwords, admin RBAC, rate-limited login         |
 | CI/CD          | GitHub Actions (lint + backend tests + frontend tests in parallel) |
 | Container      | Docker, Docker Compose, non-root runtime user, health checks       |
@@ -314,7 +315,7 @@ Grafana is pre-provisioned with dashboards under `grafana/provisioning/dashboard
 
 See [`docs/PENDING_IMPROVEMENTS.md`](docs/PENDING_IMPROVEMENTS.md) for the full prioritized checklist. Key items:
 
-- Database migrations (replace `sequelize.sync`)
+- Migration rollback automation and deployment review gates
 - Input validation library (Zod/Joi)
 - Security headers (Helmet)
 - HTTP-only cookies for JWT

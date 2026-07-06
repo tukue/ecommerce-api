@@ -1,5 +1,6 @@
 const { app, sequelize } = require('./app');
 const env = require('./config/env');
+const { checkDatabaseConnection } = require('./config/db');
 const logger = require('./utils/logger');
 const { startTracing, stopTracing } = require('./config/tracer');
 
@@ -7,13 +8,12 @@ let server;
 
 async function startServer() {
   await startTracing();
-
-  await sequelize.authenticate();
+  await checkDatabaseConnection();
   logger.info('database_connected', { environment: env.nodeEnv });
 
   if (env.nodeEnv !== 'development') {
     try {
-      await sequelize.query('SELECT 1 FROM "SequelizeMeta" LIMIT 1');
+      await sequelize.query('SELECT 1 FROM "schema_migrations" LIMIT 1');
     } catch {
       logger.error('migrations_not_run', {
         error: 'Database schema not initialized. Run "npm run migrate" before starting the server.',

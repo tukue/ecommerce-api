@@ -22,16 +22,25 @@ module.exports = (sequelize, DataTypes) => {
       quantity: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        validate: {
+          min: 1,
+        },
       },
       total: {
         type: DataTypes.FLOAT,
         allowNull: false,
         defaultValue: 0.0,
+        validate: {
+          min: 0,
+        },
       },
       status: {
         type: DataTypes.STRING,
         allowNull: false,
         defaultValue: 'pending',
+        validate: {
+          isIn: [['pending', 'paid', 'shipped', 'completed', 'cancelled']],
+        },
       },
     },
     {

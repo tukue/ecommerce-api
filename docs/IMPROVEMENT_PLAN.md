@@ -8,7 +8,7 @@ This document captures the next portfolio-focused improvements for the backend A
 - Structured request logging with correlation IDs.
 - Prometheus metrics and OpenTelemetry tracing.
 - Health check endpoints for liveness and readiness.
-- Dockerized runtime and CI workflow.
+- Dockerized runtime, CI workflow, and explicit database migrations.
 - Authentication, validation, and rate limiting already present in the codebase.
 
 ## Improvement goals
@@ -22,7 +22,7 @@ This document captures the next portfolio-focused improvements for the backend A
 
 ### 2. Reliability and resilience
 
-- Replace `sequelize.sync({ alter: ... })` with migration-based schema management.
+- Add rollback automation and migration review gates for production deployments.
 - Add idempotency support for checkout and payment flows.
 - Add retry and timeout policies around external calls.
 - Add better failure handling for downstream integrations.
@@ -51,7 +51,7 @@ This document captures the next portfolio-focused improvements for the backend A
 
 | Priority | Area                    | Why it matters                                 |
 | -------- | ----------------------- | ---------------------------------------------- |
-| High     | Migrations              | Prevents schema drift and production surprises |
+| High     | Migration rollback flow | Prevents schema drift and production surprises |
 | High     | Dashboards and alerts   | Demonstrates operational maturity              |
 | High     | Integration tests       | Increases trust in core flows                  |
 | Medium   | Idempotency and retries | Improves payment and checkout reliability      |

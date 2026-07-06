@@ -26,7 +26,7 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 
 ## Production Readiness (Score: 7/10)
 
-- [ ] **Database migrations** — replace `sequelize.sync({ alter: true })` with proper migration system (`sequelize-cli`)
+- [x] **Database migrations** — startup schema mutation replaced with explicit `npm run migrate` workflow
 - [ ] **Pagination** — add `page`/`limit` query params + response metadata to all list endpoints (products, orders, payments)
 - [x] **Graceful shutdown timeout** — add forced shutdown after a timeout (e.g., 10s) to prevent hanging
 - [ ] **Environment-specific config** — separate configs for development, test, staging, production (pool sizes, logging, etc.)
