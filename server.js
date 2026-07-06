@@ -9,6 +9,18 @@ let server;
 async function startServer() {
   await startTracing();
   await checkDatabaseConnection();
+  logger.info('database_connected', { environment: env.nodeEnv });
+
+  if (env.nodeEnv !== 'development') {
+    try {
+      await sequelize.query('SELECT 1 FROM "schema_migrations" LIMIT 1');
+    } catch {
+      logger.error('migrations_not_run', {
+        error: 'Database schema not initialized. Run "npm run migrate" before starting the server.',
+      });
+      throw new Error('Database migrations required. Run: npm run migrate');
+    }
+  }
 
   server = app.listen(env.port, '0.0.0.0', () => {
     logger.info('server_started', { port: env.port, environment: env.nodeEnv });
@@ -18,14 +30,26 @@ async function startServer() {
 async function shutdown(signal) {
   logger.info('shutdown_started', { signal });
 
-  if (server) {
-    await new Promise((resolve) => server.close(resolve));
-  }
+  const timeout = setTimeout(() => {
+    logger.error('shutdown_forced', { signal, timeoutMs: env.shutdownTimeoutMs });
+    process.exit(1);
+  }, env.shutdownTimeoutMs);
 
-  await sequelize.close();
-  await stopTracing();
-  logger.info('shutdown_completed');
-  process.exit(0);
+  try {
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+
+    await sequelize.close();
+    await stopTracing();
+    clearTimeout(timeout);
+    logger.info('shutdown_completed');
+    process.exit(0);
+  } catch (error) {
+    clearTimeout(timeout);
+    logger.error('shutdown_failed', { error: error.message, stack: error.stack });
+    process.exit(1);
+  }
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));

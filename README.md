@@ -1,163 +1,377 @@
 # E-Commerce Backend API (Production-Ready Portfolio Project)
 
+![CI](https://github.com/tukue/ecommerce-api/actions/workflows/ci.yml/badge.svg)
+
 A backend-focused e-commerce API that demonstrates more than CRUD: it is structured to showcase **operational excellence**, including **monitoring, observability, reliability patterns, secure defaults, and production-aware architecture**.
 
-## Why this project stands out for backend roles
+## Problem this solves
 
-This repository is intentionally designed as a **backend developer portfolio project** with focus on:
+Building an e-commerce backend requires orchestrating multiple concerns: user authentication, product management, order processing, secure payment handling, and operational visibility. Most demo APIs stop at basic CRUD. This project demonstrates how to build a **production-grade backend** by addressing:
 
-- API design and business logic boundaries
-- maintainable architecture (routes → controllers → services → repositories)
-- robust error handling and validation
-- JWT auth and rate-limited login endpoint
-- production-grade telemetry (metrics + tracing + structured logging)
-- health checks, explicit migrations, and graceful shutdown behavior
-- containerized runtime and CI-ready workflow
+- **Secure transactions** — JWT authentication, admin role-based access control, rate-limited login, and server-side price enforcement on Stripe checkout prevent manipulation
+- **Operational visibility** — structured logging with correlation IDs, Prometheus metrics, distributed tracing via OpenTelemetry/Jaeger, and pre-built Grafana dashboards give full insight into system behavior
+- **Maintainable architecture** — layered separation (routes → controllers → services → repositories → models) keeps business logic decoupled from transport and data access
+- **Reliability** — health probes, graceful shutdown, connection pooling, and CI/CD pipeline ensure the system can be deployed and operated confidently
+- **Full payment flow** — end-to-end Stripe integration with secure server-side line item pricing so clients cannot tamper with prices
 
-## Architecture summary
+## System architecture
 
-```text
-Client
-  -> Express Routes
-    -> Controllers
-      -> Services (business rules)
-        -> Repositories (data access)
-          -> Sequelize Models -> PostgreSQL
+```mermaid
+flowchart TB
+    subgraph Clients["Clients"]
+        Browser["Browser\n(EJS frontend on port 5004)"]
+        APIClient["External API Consumer\n(cURL, Postman, mobile app)"]
+    end
 
-Cross-cutting:
-- request context (x-correlation-id)
-- structured JSON logs
-- Prometheus metrics (/metrics)
-- OpenTelemetry traces -> Jaeger
-- centralized error handling
-- liveness/readiness probes
+    subgraph Identity["Identity"]
+        OIDC["Auth0 / OIDC Provider\nAuthorization Code callback\nRS256 access tokens + JWKS"]
+    end
+
+    subgraph DockerHost["Docker Host"]
+        direction TB
+
+        subgraph AppContainer["app container (port 5004)"]
+            OIDCSession["express-openid-connect\n/login → /callback → encrypted cookie session\n/logout clears the OIDC session"]
+            MW["Middleware Pipeline\nrequest context → logging → telemetry\n→ rate limits → authentication/authorization"]
+            Auth["Authentication Resolver\n1. OIDC cookie session\n2. local HS256 access cookie/bearer JWT\n3. external RS256 bearer JWT"]
+            Routes["Routes\n/auth /products /orders\n/checkout /payments /health"]
+            Controllers["Controllers\n(orchestrate request/response)"]
+            Services["Services\nbusiness rules + JIT OIDC user provisioning"]
+            Repos["Repositories\n(data access abstraction)"]
+            Models["Sequelize ORM\nUser, Product, Order, Payment"]
+        end
+
+        subgraph Infra["Infrastructure Containers"]
+            PG[("PostgreSQL (port 5432)\nprimary database")]
+            Prom["Prometheus (port 9090)\nmetrics scraping"]
+            Graf["Grafana (port 3000)\ndashboards & visualization"]
+            Jaeger["Jaeger (port 16686)\ndistributed trace storage"]
+        end
+    end
+
+    subgraph External["External Services"]
+        Stripe["Stripe API\n(payment processing,\ncheckout sessions)"]
+    end
+
+    Browser -->|"local login: credentials"| Routes
+    Browser -->|"OIDC login"| OIDCSession
+    OIDCSession <-->|"authorization redirect + code callback"| OIDC
+    OIDCSession --> MW
+    Browser -->|"HTTP-only access + refresh cookies"| MW
+    APIClient -->|"Bearer local or provider access token"| MW
+    MW --> Auth
+    Auth --> Controllers
+    Auth -->|"kid → cached public key"| OIDC
+    Routes --> Controllers
+    Controllers --> Services
+    Services --> Repos
+    Repos --> Models
+    Models --> PG
+
+    Controllers --> Stripe
+    AppContainer -.->|"/metrics scrape"| Prom
+    AppContainer -.->|"OTLP traces"| Jaeger
+    AppContainer -.->|"stdout JSON logs"| Logs
+
+    Prom --> Graf
+    Jaeger --> Graf
+
+    subgraph HostMachine["Host Machine"]
+        Logs["Docker logs (stdout)\nstructured JSON with correlationId"]
+        DockerCLI["docker compose up --build\nstarts all services"]
+    end
+
+    DockerCLI -.->|"orchestrates"| DockerHost
+
+    style AppContainer fill:#1b2d1b,color:#fff,stroke:#3a8a3a
+    style Infra fill:#1a1a2e,color:#fff,stroke:#4a4a8a
+    style External fill:#2d1b1b,color:#fff,stroke:#8a3a3a
+    style HostMachine fill:#2a2a2a,color:#fff,stroke:#666
 ```
 
-Detailed architecture notes: `docs/ARCHITECTURE.md`.
+**Request flow:** Clients authenticate through local email/password JWT cookies, an OIDC browser session, or externally issued RS256 bearer tokens. Protected routes resolve those credentials in that order, rotate local tokens when an expired access cookie has a valid refresh cookie, set `req.user`, then continue through controllers → services → repositories → ORM → PostgreSQL. Observability data (metrics, traces, logs) is emitted around the request pipeline.
 
 ## Tech stack
 
-- **Runtime:** Node.js 20, Express 4
-- **Database:** PostgreSQL + Sequelize ORM
-- **Auth/Security:** JWT, bcrypt, express-rate-limit
-- **Observability:** Prometheus, Grafana, OpenTelemetry, Jaeger
-- **Docs:** Swagger UI (`/api-docs`)
-- **Testing:** Jest + Supertest
-- **Containerization:** Docker + Docker Compose
-- **CI:** GitHub Actions workflow
+| Category             | Technologies                                           |
+| -------------------- | ------------------------------------------------------ |
+| **Runtime**          | Node.js 20, Express 4                                  |
+| **Database**         | PostgreSQL 15, Sequelize ORM 6                         |
+| **Auth**             | JWT, bcryptjs, express-openid-connect, jwks-rsa        |
+| **Payments**         | Stripe API (checkout sessions)                         |
+| **Observability**    | Prometheus, Grafana, OpenTelemetry, Jaeger             |
+| **Frontend**         | EJS templates, vanilla JavaScript, CSS                 |
+| **API Docs**         | Swagger UI (swagger-jsdoc)                             |
+| **Testing**          | Jest, Supertest, jsdom                                 |
+| **Containerization** | Docker, Docker Compose                                 |
+| **CI/CD**            | GitHub Actions (lint + backend tests + frontend tests) |
 
-## API overview
+## Running the application
 
-Base URL: `http://localhost:5004`
+### Option A: Full stack with Docker (recommended)
 
-Core domains:
-- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/profile`
-- `GET/POST/PUT/DELETE /api/products`
-- `GET/POST /api` (orders)
-- `POST /api/checkout`
-- `POST /api/payments`
-
-Operational endpoints:
-- `GET /health/live` – process heartbeat
-- `GET /health/ready` – dependency readiness (DB connectivity)
-- `GET /metrics` – Prometheus scrape endpoint
-- `GET /api-docs` – interactive API docs
-
-## Monitoring and observability
-
-### 1) Structured logging
-Each request is logged as JSON with:
-- timestamp
-- level
-- method/path/status
-- duration
-- `correlationId`
-
-### 2) Correlation IDs
-`x-correlation-id` is accepted or generated per request and returned in responses. This allows tracing a single request across logs, metrics labels, and traces.
-
-### 3) Metrics (Prometheus)
-Available on `/metrics`:
-- `http_request_duration_seconds` (histogram)
-- `http_requests_total` (counter)
-- `http_in_flight_requests` (gauge)
-- `api_errors_total` (counter)
-- default Node.js process/runtime metrics
-
-### 4) Tracing (OpenTelemetry)
-OpenTelemetry auto-instrumentation is configured for Express and PostgreSQL and exports traces to Jaeger via OTLP (`OTEL_EXPORTER_OTLP_ENDPOINT`).
-
-### 5) Dashboards and visualization
-Grafana provisioning is included under `grafana/provisioning/` and Prometheus scrape configuration is under `prometheus/prometheus.yml`.
-
-## Local development setup
-
-### Prerequisites
-- Node.js 20+
-- Docker + Docker Compose
-- PostgreSQL (if running without Docker)
-
-### 1) Configure environment
-```bash
-cp .env.example .env
-```
-Update secrets (especially `JWT_SECRET`, Stripe keys, and DB URL).
-
-### 2) Install dependencies
-```bash
-npm ci
-```
-
-### 3) Run locally
-Apply migrations first so the application starts against an explicit schema:
-
-```bash
-npm run migrate
-```
-
-Then start the API:
-
-```bash
-npm start
-```
-
-### 4) Run with full observability stack
 ```bash
 docker compose up --build
 ```
 
-Access points:
-- API: http://localhost:5004
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
-- Jaeger: http://localhost:16686
+This starts all services defined in `docker-compose.yml`:
 
-## Production readiness considerations
+| Service        | Container    | Purpose                     | Local URL                |
+| -------------- | ------------ | --------------------------- | ------------------------ |
+| **App**        | `app`        | Express API + frontend      | {BASE_URL}:{APP_PORT}    |
+| **Database**   | `postgres`   | PostgreSQL 15               | {BASE_URL}:{DB_PORT}     |
+| **Metrics**    | `prometheus` | Scrapes /metrics every 15s  | {BASE_URL}:{PROM_PORT}   |
+| **Dashboards** | `grafana`    | Pre-provisioned dashboards  | {BASE_URL}:{GRAF_PORT}   |
+| **Tracing**    | `jaeger`     | OpenTelemetry trace storage | {BASE_URL}:{JAEGER_PORT} |
 
-Implemented:
-- environment-based configuration with required variable checks
-- centralized error handling with consistent JSON envelopes
-- graceful shutdown (`SIGINT`, `SIGTERM`) for HTTP server, DB pool, and tracer
-- explicit migration runner (`npm run migrate`) instead of startup schema mutation
-- request rate limiting on auth login endpoint
-- CI pipeline (`.github/workflows/ci.yml`)
-- non-root runtime in Docker image
+### Option B: Run API directly (without Docker)
 
-Recommended before real production:
-- add secret manager integration (AWS Secrets Manager, Vault, etc.)
-- enforce TLS termination and reverse-proxy hardening
-- add SLO definitions and alert rules (latency, error rate, saturation)
+Prerequisites: Node.js 20+, PostgreSQL running locally.
+
+```bash
+cp .env.example .env        # configure DB URL, JWT_SECRET, Stripe keys
+npm ci                      # install dependencies
+npm run migrate             # apply pending database migrations
+node server.js              # starts on {BASE_URL}:{APP_PORT}
+```
+
+### Option C: Development with live observability stack
+
+Run the app locally but use Docker for the infrastructure:
+
+```bash
+# Start only PostgreSQL + Prometheus + Grafana + Jaeger
+docker compose up postgres prometheus grafana jaeger
+
+# In a separate terminal, start the app
+node server.js
+```
+
+## API endpoints
+
+| Method | Endpoint                   | Auth         | Description                                 |
+| ------ | -------------------------- | ------------ | ------------------------------------------- |
+| POST   | `/api/auth/register`       | None         | Register new user                           |
+| POST   | `/api/auth/login`          | Rate-limited | Login, returns JWT                          |
+| GET    | `/api/auth/profile`        | JWT          | User profile + recent orders                |
+| POST   | `/api/auth/request-reset`  | None         | Request password reset                      |
+| POST   | `/api/auth/reset-password` | None         | Reset password with token                   |
+| GET    | `/api/products`            | None         | List all products                           |
+| GET    | `/api/products/:id`        | None         | Get product by ID                           |
+| POST   | `/api/products`            | Admin        | Create product                              |
+| PUT    | `/api/products/:id`        | Admin        | Update product                              |
+| DELETE | `/api/products/:id`        | Admin        | Delete product                              |
+| GET    | `/api/products/search`     | None         | Search products by name                     |
+| GET    | `/api/orders`              | JWT          | List orders (user sees own, admin sees all) |
+| POST   | `/api/orders`              | JWT          | Create order                                |
+| GET    | `/api/orders/:id`          | JWT          | Get order (with ownership check)            |
+| PUT    | `/api/orders/:id`          | JWT          | Update order (admin can update status)      |
+| DELETE | `/api/orders/:id`          | JWT          | Delete order (with ownership check)         |
+| POST   | `/api/checkout`            | JWT          | Create Stripe checkout session              |
+| GET    | `/api/payments`            | JWT          | List payments                               |
+| POST   | `/api/payments`            | JWT          | Create payment record                       |
+| GET    | `/api/payments/:id`        | JWT          | Get payment by ID                           |
+| GET    | `/health/live`             | None         | Liveness probe (process uptime)             |
+| GET    | `/health/ready`            | None         | Readiness probe (DB connectivity)           |
+| GET    | `/metrics`                 | None         | Prometheus metrics endpoint                 |
+| GET    | `/api-docs`                | None         | Swagger UI documentation                    |
+
+## Authentication & Authorization
+
+The API implements a **dual-mode authentication system** — local JWT (always enabled) and OAuth 2.0 / OpenID Connect (optional, Auth0-compatible). Both modes share a single middleware pipeline with a local-first, external-fallback strategy.
+
+### Data Flow
+
+```
+Client                          Express API                        Auth0 / OIDC Provider
+  │                                  │                                    │
+  │  POST /api/auth/login            │                                    │
+  │  { email, password }             │                                    │
+  ├─────────────────────────────────►│                                    │
+  │                                  │                                    │
+  │                                  │  bcrypt.compare(password, hash)    │
+  │                                  ├────┐                               │
+  │                                  │    │                               │
+  │                                  │◄───┘                               │
+  │                                  │                                    │
+  │  200 { token: <local JWT> }     │                                    │
+  │◄─────────────────────────────────┤                                    │
+  │                                  │                                    │
+  │  GET /api/orders                 │                                    │
+  │  Authorization: Bearer <token>  │                                    │
+  ├─────────────────────────────────►│                                    │
+  │                                  │                                    │
+  │  ┌── Local mode ──────────────┐  │                                    │
+  │  │ jwt.verify(token, secret)   │  │                                    │
+  │  ├─────────────────────────────┤  │                                    │
+  │  │ Success? → set req.user    │  │                                    │
+  │  │ Failure + external enabled?│  │                                    │
+  │  │ → fall through             │  │                                    │
+  │  └─────────────────────────────┘  │                                    │
+  │                                  │                                    │
+  │  ┌── OAuth mode ──────────────┐  │  GET /.well-known/jwks.json        │
+  │  │ Decode JWT header → kid    │  ├───────────────────────────────────►│
+  │  │ Fetch RS256 public key     │  │◄───────────────────────────────────┤
+  │  │ jwt.verify(token, pubKey)  │  │       { keys: [...] }              │
+  │  │ Auto-provision user        │  │                                    │
+  │  │ set req.user               │  │                                    │
+  │  └─────────────────────────────┘  │                                    │
+  │                                  │                                    │
+  │  200 { orders: [...] }          │                                    │
+  │◄─────────────────────────────────┤                                    │
+```
+
+### How It Works
+
+| Step                      | What Happens                                                                                   |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| **1. Token extraction**   | Bearer token pulled from `Authorization` header, or OIDC session checked                       |
+| **2. Local verification** | `jwt.verify(token, JWT_SECRET)` — HS256 symmetric verification. Fast (no external calls)       |
+| **3. External fallback**  | If local fails and external auth is enabled, decode JWT header to extract `kid` (Key ID)       |
+| **4. JWKS fetch**         | Fetch public key from `https://{domain}/.well-known/jwks.json`. Cached in-memory by `jwks-rsa` |
+| **5. RS256 verification** | `jwt.verify(token, publicKey, { audience, issuer, algorithms: ['RS256'] })`                    |
+| **6. Auto-provisioning**  | First-time external users are created automatically — lookup by `sub` → by email → create      |
+| **7. Rate limiting**      | 4 tiers: global (100/15m), mutating (50/15m), auth-sensitive (5/15m), login (5/15m)            |
+| **8. Admin guard**        | `adminMiddleware` checks `req.user.role === 'admin'` after authentication                      |
+
+### Why This Approach
+
+- **RS256 over HS256 for external tokens** — the API verifies tokens without ever holding the signing private key. Key rotation is handled automatically via JWKS.
+- **Local first** — avoids unnecessary JWKS fetches for first-party users. Expired tokens never fall through to external verification.
+- **Hybrid state model** — bearer-token requests are stateless; browser OIDC login uses an encrypted cookie session managed by `express-openid-connect`.
+
+### Key Files
+
+| File                             | Role                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `middleware/authMiddleWare.js`   | Token extraction, dual-mode verification, rate limiters, admin guard     |
+| `services/authProvider.js`       | OAuth token verification via JWKS (RS256)                                |
+| `services/authService.js`        | Local auth (register, login, password reset), external user provisioning |
+| `repositories/authRepository.js` | Data access for user lookup, creation, auth subject linking              |
+| `app.js`                         | OIDC browser middleware, `/login`, `/callback`, and `/logout` mounting   |
+
+> See [`docs/OAUTH_FLOW.md`](docs/OAUTH_FLOW.md) for the full deep dive — JWKS key rotation, decision tree, route matrix, test coverage, and architecture rationale.
+
+## Containerization
+
+The project uses **Docker Compose** to orchestrate 5 containers:
+
+```yaml
+services:
+  app: # Node.js 20 (non-root user), serves API + frontend on port 5004
+  postgres: # PostgreSQL 15, persistent volume, health check
+  prometheus: # Scrapes app:/metrics every 15s, persistent volume
+  grafana: # Pre-provisioned datasources + dashboards, persistent volume
+  jaeger: # OpenTelemetry trace ingestion + UI, in-memory storage
+```
+
+- **Dockerfile** uses multi-stage build: `npm ci` in build stage, then copies only production dependencies to a clean `node:20-alpine` image running as a non-root `nodeuser`
+- **Health check** configured for `postgres` so the app waits for the database to be ready
+- **Volumes** persist PostgreSQL data, Prometheus data, and Grafana provisioning/config across restarts
+- **Dependency order**: `app depends_on: postgres`, `prometheus` and `grafana` start independently
+
+## Monitoring and observability
+
+### 1) Structured logging
+
+Every request is logged as JSON with timestamp, level, method, path, status, duration, and `correlationId`.
+
+### 2) Correlation IDs
+
+`x-correlation-id` is accepted or generated per request and returned in responses, enabling cross-referencing across logs, metrics, and traces.
+
+### 3) Metrics (Prometheus)
+
+Available at `GET /metrics`:
+
+- `http_request_duration_seconds` (histogram)
+- `http_requests_total` (counter)
+- `http_in_flight_requests` (gauge)
+- `api_errors_total` (counter)
+- Default Node.js process/runtime metrics
+
+### 4) Tracing (OpenTelemetry)
+
+Auto-instrumentation for Express and PostgreSQL exports traces to Jaeger via OTLP.
+
+### 5) Dashboards
+
+Grafana is pre-provisioned with dashboards under `grafana/provisioning/dashboards/`. Prometheus scrape config at `prometheus/prometheus.yml`.
+
+## Production readiness
+
+### Implemented
+
+| Category       | Items                                                              |
+| -------------- | ------------------------------------------------------------------ |
+| Config         | Environment-based config with required variable validation         |
+| Error handling | Centralized handler with consistent JSON error envelopes           |
+| Reliability    | Explicit migrations, graceful shutdown, DB pool, tracer cleanup    |
+| Security       | JWT auth, bcrypt passwords, admin RBAC, rate-limited login         |
+| CI/CD          | GitHub Actions (lint + backend tests + frontend tests in parallel) |
+| Container      | Docker, Docker Compose, non-root runtime user, health checks       |
+
+### Recommended before production
+
+See [`docs/PENDING_IMPROVEMENTS.md`](docs/PENDING_IMPROVEMENTS.md) for the full prioritized checklist. Key items:
+
+- Migration rollback automation and deployment review gates
+- Input validation library (Zod/Joi)
+- Security headers (Helmet)
+- HTTP-only cookies for JWT
 
 ## Suggested portfolio talking points
 
 When presenting this project, emphasize:
-- “I built observability in from day one (logs, metrics, traces) rather than adding it after incidents.”
-- “I designed health probes and graceful shutdown to support container orchestration and zero-downtime deployments.”
-- “I separated business logic from transport and data access concerns for maintainability and scale.”
+
+- "I built observability in from day one (logs, metrics, traces) rather than adding it after incidents."
+- "I designed health probes and graceful shutdown to support container orchestration and zero-downtime deployments."
+- "I separated business logic from transport and data access concerns for maintainability and scale."
+- "I identified and documented 20+ technical improvements with prioritization — the same approach I'd use onboarding to a production system."
+
+## Pending improvements
+
+Tracked in detail at [`docs/PENDING_IMPROVEMENTS.md`](docs/PENDING_IMPROVEMENTS.md) — includes security hardening, architectural consistency, production readiness, and testing gaps with a phase-based scoring system.
 
 ## Future improvements
 
-- Add Redis-based caching and idempotency keys for checkout/payment reliability.
-- Add outbox pattern + message broker integration (Kafka/SQS) for order events.
-- Add contract tests and load-testing CI stage.
-- Add SLO dashboards and alert runbooks in `docs/`.
+### Performance & scaling
+
+- **Redis caching** — cache product listings and search results to reduce DB load and improve response times
+- **Database read replicas** — separate read/write traffic for horizontal scaling under load
+- **Connection pooling tuning** — environment-aware pool sizing for PostgreSQL
+
+### Reliability & resilience
+
+- **Idempotency keys** — prevent duplicate checkout/payment submissions on network retries
+- **Outbox pattern + message broker** (Kafka/SQS) — reliable order event processing and async fulfillment workflows
+- **Retry with exponential backoff** — for Stripe API calls and external service integrations
+- **Circuit breaker** — protect downstream dependencies from cascading failures
+
+### Security
+
+- **Rate limiting on all endpoints** — general API abuse protection beyond just login
+- **Refresh token rotation** — short-lived access tokens + long-lived refresh tokens with rotation
+- **Secrets manager integration** (AWS Secrets Manager / Vault) — no secrets in environment variables
+- **TLS termination** — enforce HTTPS at reverse proxy layer
+
+### Testing & quality
+
+- **Contract tests** — validate API responses against OpenAPI spec (Pact or Dredd)
+- **Load testing CI stage** — automated k6/artillery tests as a gating step
+- **Fuzz testing** — edge case discovery for input validation
+- **Mutation testing** — measure test suite effectiveness
+
+### Observability maturity
+
+- **SLO dashboards** — track latency, error rate, and throughput against defined targets
+- **Alert rules** — Prometheus alerting for p99 latency spikes, elevated 5xx rates, DB connectivity loss
+- **Business metrics** — orders created, revenue processed, products sold as Prometheus counters
+- **Log correlation runbooks** — documented workflows for tracing issues using `correlationId`
+
+### Platform & DevOps
+
+- **Kubernetes deployment manifests** — Helm charts or Kustomize for production orchestration
+- **Blue-green deployments** — zero-downtime release strategy
+- **Feature flags** — gradual rollouts and A/B testing capability
+- **Database migration pipeline** — automated migrations as part of CI/CD with rollback support

@@ -1,7 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { authMiddleware, loginLimiter } = require('../middleware/authMiddleWare');
+const validate = require('../middleware/validate');
+const {
+  register: registerSchema,
+  login: loginSchema,
+  requestPasswordReset: requestPasswordResetSchema,
+  resetPassword: resetPasswordSchema,
+} = require('../utils/validators');
+const {
+  authMiddleware,
+  loginLimiter,
+  authSensitiveLimiter,
+} = require('../middleware/authMiddleWare');
 
 /**
  * @swagger
@@ -41,7 +52,12 @@ const { authMiddleware, loginLimiter } = require('../middleware/authMiddleWare')
  *       500:
  *         description: Internal server error
  */
-router.post('/register', authController.register);
+router.post(
+  '/register',
+  authSensitiveLimiter,
+  validate({ body: registerSchema }),
+  authController.register,
+);
 
 /**
  * @swagger
@@ -71,7 +87,7 @@ router.post('/register', authController.register);
  *       500:
  *         description: Internal server error
  */
-router.post('/login', loginLimiter, authController.login);
+router.post('/login', loginLimiter, validate({ body: loginSchema }), authController.login);
 
 /**
  * @swagger
@@ -118,7 +134,12 @@ router.get('/profile', authMiddleware, authController.getProfile);
  *       500:
  *         description: Internal server error
  */
-router.post('/request-reset', authController.requestPasswordReset);
+router.post(
+  '/request-reset',
+  authSensitiveLimiter,
+  validate({ body: requestPasswordResetSchema }),
+  authController.requestPasswordReset,
+);
 
 /**
  * @swagger
@@ -148,6 +169,15 @@ router.post('/request-reset', authController.requestPasswordReset);
  *       500:
  *         description: Internal server error
  */
-router.post('/reset', authController.resetPassword);
+router.post(
+  '/reset',
+  authSensitiveLimiter,
+  validate({ body: resetPasswordSchema }),
+  authController.resetPassword,
+);
+
+router.post('/logout', authMiddleware, authController.logout);
+
+router.post('/refresh', authController.refresh);
 
 module.exports = router;

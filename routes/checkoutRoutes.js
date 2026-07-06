@@ -1,38 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { authMiddleware } = require('../middleware/authMiddleWare');
+const validate = require('../middleware/validate');
+const { createCheckoutSession } = require('../utils/validators');
+const asyncHandler = require('../utils/asyncHandler');
+const CheckoutService = require('../services/checkoutService');
 
-router.post('/create-checkout-session', async (req, res) => {
-  const { cart } = req.body;
+const checkoutController = {
+  createCheckoutSession: asyncHandler(async (req, res) => {
+    const service = new CheckoutService(req.models);
+    const result = await service.createCheckoutSession(req.body.cart, req.user);
+    res.json(result);
+  }),
+};
 
-  const lineItems = cart.map(item => {
-    const unitAmount = Math.round(item.price * 100); // Convert price to cents
-    return {
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
-        },
-        unit_amount: unitAmount,
-      },
-      quantity: item.quantity,
-    };
-  });
-
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      success_url: 'http://localhost:5004/success',
-      cancel_url: 'http://localhost:5004/cancel',
-    });
-
-    res.json({ id: session.id });
-  } catch (error) {
-    console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+router.post(
+  '/create-checkout-session',
+  authMiddleware,
+  validate({ body: createCheckoutSession }),
+  checkoutController.createCheckoutSession,
+);
 
 module.exports = router;

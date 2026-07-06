@@ -4,7 +4,7 @@ const ProductModel = require('../models/product');
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: ':memory:',
-  logging: false
+  logging: false,
 });
 
 const Product = ProductModel(sequelize, DataTypes);
@@ -27,11 +27,11 @@ describe('Product Model', () => {
       name: 'Test Product',
       description: 'This is a test product',
       price: 100.0,
-      stock: 10
+      stock: 10,
     };
 
     const product = await Product.create(validProduct);
-    
+
     expect(product).toBeDefined();
     expect(product.name).toBe(validProduct.name);
     expect(product.description).toBe(validProduct.description);
@@ -41,7 +41,7 @@ describe('Product Model', () => {
 
   it('should not create a product without required fields', async () => {
     const invalidProduct = {
-      name: 'Test Product'
+      name: 'Test Product',
     };
 
     await expect(Product.create(invalidProduct)).rejects.toThrow();
@@ -52,7 +52,7 @@ describe('Product Model', () => {
       name: 'Test Product',
       description: 'This is a test product',
       price: -100.0,
-      stock: 10
+      stock: 10,
     };
 
     await expect(Product.create(invalidProduct)).rejects.toThrow();
@@ -63,7 +63,7 @@ describe('Product Model', () => {
       name: 'Test Product',
       description: 'This is a test product',
       price: 100.0,
-      stock: -10
+      stock: -10,
     };
 
     await expect(Product.create(invalidProduct)).rejects.toThrow();

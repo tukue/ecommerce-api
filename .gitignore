@@ -1,5 +1,2 @@
-.env 
+.env
 /node_modules
-generate_secrete.js
-README.md 
-db_scripts.md

@@ -13,4 +13,4 @@ EXPOSE 5004
 RUN addgroup -S nodejs && adduser -S nodeuser -G nodejs
 USER nodeuser
 
-CMD ["sh", "-c", "npm run migrate && node server.js"]
+CMD ["sh", "-c", "npm run migrate || { echo 'Migration failed'; exit 1; }; exec node server.js"]

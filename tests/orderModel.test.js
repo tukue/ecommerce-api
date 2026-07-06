@@ -6,7 +6,7 @@ const ProductModel = require('../models/product'); // Add ProductModel
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: ':memory:',
-  logging: false
+  logging: false,
 });
 
 // Initialize models
@@ -40,7 +40,7 @@ describe('Order Model', () => {
     const user = await User.create({
       username: 'testuser',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     });
 
     // Add a product
@@ -48,7 +48,7 @@ describe('Order Model', () => {
       name: 'Test Product',
       description: 'This is a test product',
       price: 100.0,
-      stock: 10
+      stock: 10,
     });
 
     const validOrder = {
@@ -56,7 +56,7 @@ describe('Order Model', () => {
       productId: product.id, // Add productId
       quantity: 2, // Add quantity
       total: 200.0,
-      status: 'pending'
+      status: 'pending',
     };
 
     const order = await Order.create(validOrder);
@@ -71,7 +71,7 @@ describe('Order Model', () => {
 
   it('should not create an order without required fields', async () => {
     const invalidOrder = {
-      userId: 1
+      userId: 1,
     };
 
     await expect(Order.create(invalidOrder)).rejects.toThrow();
@@ -82,13 +82,13 @@ describe('Order Model', () => {
     const user = await User.create({
       username: 'testuser',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     });
 
     const invalidOrder = {
       userId: user.id,
       total: -100,
-      status: 'pending'
+      status: 'pending',
     };
 
     await expect(Order.create(invalidOrder)).rejects.toThrow();
@@ -99,13 +99,13 @@ describe('Order Model', () => {
     const user = await User.create({
       username: 'testuser',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     });
 
     const invalidOrder = {
       userId: user.id,
       total: 100,
-      status: 'invalid'
+      status: 'invalid',
     };
 
     await expect(Order.create(invalidOrder)).rejects.toThrow();
@@ -116,7 +116,7 @@ describe('Order Model', () => {
     const user = await User.create({
       username: 'testuser',
       email: 'test@example.com',
-      password: 'password123'
+      password: 'password123',
     });
 
     // Add a product
@@ -124,7 +124,7 @@ describe('Order Model', () => {
       name: 'Test Product',
       description: 'This is a test product',
       price: 100.0,
-      stock: 10
+      stock: 10,
     });
 
     // Create an order
@@ -133,15 +133,15 @@ describe('Order Model', () => {
       productId: product.id,
       quantity: 2,
       total: 200.0,
-      status: 'pending'
+      status: 'pending',
     });
 
     // Fetch order with user and product
     const fetchedOrder = await Order.findByPk(order.id, {
       include: [
         { model: User, as: 'user' },
-        { model: Product, as: 'product' } // Include product
-      ]
+        { model: Product, as: 'product' }, // Include product
+      ],
     });
 
     expect(fetchedOrder).toBeDefined();

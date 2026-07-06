@@ -5,11 +5,13 @@ const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http')
 const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { PgInstrumentation } = require('@opentelemetry/instrumentation-pg');
+const { trace } = require('@opentelemetry/api');
 const env = require('./env');
 const logger = require('../utils/logger');
 
 const traceExporter = new OTLPTraceExporter({
   url: `${env.otelEndpoint}/v1/traces`,
+  timeoutMillis: 5000,
 });
 
 const sdk = new opentelemetry.NodeSDK({
@@ -22,9 +24,13 @@ const sdk = new opentelemetry.NodeSDK({
   instrumentations: [
     getNodeAutoInstrumentations(),
     new ExpressInstrumentation(),
-    new PgInstrumentation(),
+    new PgInstrumentation({
+      enhancedDatabaseReporting: env.nodeEnv === 'development',
+    }),
   ],
 });
+
+const tracer = trace.getTracer(env.serviceName);
 
 async function startTracing() {
   await sdk.start();
@@ -36,7 +42,13 @@ async function stopTracing() {
   logger.info('tracing_stopped');
 }
 
+function startSpan(name, attributes = {}) {
+  return tracer.startActiveSpan(name, { attributes });
+}
+
 module.exports = {
   startTracing,
   stopTracing,
+  tracer,
+  startSpan,
 };

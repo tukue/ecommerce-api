@@ -24,7 +24,8 @@ async function ensureMetaTable(queryInterface) {
 }
 
 async function getAppliedMigrations() {
-  const [rows] = await sequelize.query(`SELECT name FROM ${metaTable}`);
+  const tableName = sequelize.getQueryInterface().quoteTable(metaTable);
+  const [rows] = await sequelize.query(`SELECT name FROM ${tableName} ORDER BY name`);
   return new Set(rows.map((row) => row.name));
 }
 

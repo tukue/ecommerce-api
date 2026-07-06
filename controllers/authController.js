@@ -1,195 +1,109 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const { Op } = require('sequelize');
+const asyncHandler = require('../utils/asyncHandler');
+const { getAuthService } = require('../config/container');
+const env = require('../config/env');
 
-const authController = {
-  async register(req, res) {
-    try {
-      const { username, email, password } = req.body;
+const setTokenCookies = (res, token, refreshToken) => {
+  const cookieOpts = {
+    httpOnly: true,
+    secure: env.cookie.secure,
+    sameSite: env.cookie.sameSite,
+    path: '/',
+  };
 
-      // Check if user already exists
-      const existingUser = await req.models.User.findOne({ 
-        where: { 
-          [Op.or]: [{ email }, { username }] 
-        } 
-      });
-      
-      if (existingUser) {
-        return res.status(400).json({ 
-          message: 'User with this email or username already exists' 
-        });
-      }
+  res.cookie('token', token, {
+    ...cookieOpts,
+    maxAge: ms(env.jwtExpiresIn),
+  });
 
-      // Validate password strength
-      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(password)) {
-        return res.status(400).json({
-          message: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.'
-        });
-      }
-
-      // Create new user
-      const user = await req.models.User.create({
-        username,
-        email,
-        password
-      });
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
-
-      // Remove sensitive data from response
-      const userResponse = user.toJSON();
-      delete userResponse.password;
-      delete userResponse.resetToken;
-      delete userResponse.resetTokenExpiry;
-
-      // Return success response
-      return res.status(201).json({
-        message: 'Registration successful! Welcome to our platform.',
-        user: userResponse,
-        token
-      });
-    } catch (error) {
-      console.error('Registration error:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  },
-
-  async login(req, res) {
-    try {
-      const { email, password } = req.body;
-
-      // Find user
-      const user = await req.models.User.findOne({ where: { email } });
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid email or password. Please try again.' });
-      }
-
-      // Check password
-      const isPasswordValid = await user.validatePassword(password);
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Invalid email or password. Please try again.' });
-      }
-
-      // Generate token
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
-
-      // Remove sensitive data from response
-      const userResponse = user.toJSON();
-      delete userResponse.password;
-
-      return res.status(200).json({
-        user: userResponse,
-        token
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  },
-
-  async getProfile(req, res) {
-    try {
-      const user = await req.models.User.findByPk(req.user.id, {
-        include: [
-          {
-            model: req.models.Order,
-            as: 'orders', // Use the alias defined in the association
-            attributes: ['id', 'total', 'status', 'createdAt'],
-            limit: 5,
-            order: [['createdAt', 'DESC']]
-          }
-        ],
-        attributes: { exclude: ['password'] }
-      });
-
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-
-      return res.status(200).json({ user });
-    } catch (error) {
-      console.error('Profile fetch error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  },
-
-  async requestPasswordReset(req, res) {
-    try {
-      const { email } = req.body;
-      const user = await req.models.User.findOne({ where: { email } });
-
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-
-      // Generate reset token
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
-
-      // Save hashed token
-      const hashedToken = await bcrypt.hash(resetToken, 12);
-      await user.update({
-        resetToken: hashedToken,
-        resetTokenExpiry
-      });
-
-      // In a real application, send this via email
-      return res.status(200).json({
-        message: 'Password reset token generated',
-        resetToken // In production, this should be sent via email
-      });
-    } catch (error) {
-      console.error('Password reset request error:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  },
-
-  async resetPassword(req, res) {
-    try {
-      const { token, newPassword } = req.body;
-
-      // Find user with valid reset token
-      const user = await req.models.User.findOne({
-        where: {
-          resetTokenExpiry: {
-            [Op.gt]: new Date()
-          }
-        }
-      });
-
-      if (!user) {
-        return res.status(400).json({ message: 'Invalid or expired reset token' });
-      }
-
-      // Verify token
-      const isValidToken = await bcrypt.compare(token, user.resetToken);
-      if (!isValidToken) {
-        return res.status(400).json({ message: 'Invalid reset token' });
-      }
-
-      // Update password
-      await user.update({
-        password: newPassword,
-        resetToken: null,
-        resetTokenExpiry: null
-      });
-
-      return res.status(200).json({ message: 'Password reset successful' });
-    } catch (error) {
-      console.error('Password reset error:', error);
-      return res.status(500).json({ error: error.message });
-    }
-  }
+  res.cookie('refreshToken', refreshToken, {
+    ...cookieOpts,
+    maxAge: ms(env.jwtRefreshExpiresIn),
+  });
 };
 
-module.exports = authController;
+const clearTokenCookies = (res) => {
+  res.clearCookie('token', { path: '/' });
+  res.clearCookie('refreshToken', { path: '/' });
+};
+
+function ms(str) {
+  const match = str.match(/^(\d+)([smhd])$/);
+  if (!match) {
+    return 3600000;
+  }
+  const n = parseInt(match[1], 10);
+  switch (match[2]) {
+    case 's':
+      return n * 1000;
+    case 'm':
+      return n * 60000;
+    case 'h':
+      return n * 3600000;
+    case 'd':
+      return n * 86400000;
+    default:
+      return 3600000;
+  }
+}
+
+module.exports = {
+  register: asyncHandler(async (req, res) => {
+    const result = await getAuthService(req.models).register(req.body);
+    setTokenCookies(res, result.token, result.refreshToken);
+    res.status(201).json({
+      message: result.message,
+      user: result.user,
+    });
+  }),
+
+  login: asyncHandler(async (req, res) => {
+    const result = await getAuthService(req.models).login(req.body);
+    setTokenCookies(res, result.token, result.refreshToken);
+    res.status(200).json({
+      user: result.user,
+    });
+  }),
+
+  logout: asyncHandler(async (req, res) => {
+    clearTokenCookies(res);
+    if (req.oidc && typeof req.oidc.logout === 'function') {
+      await req.oidc.logout();
+    }
+    res.status(200).json({ message: 'Logged out successfully' });
+  }),
+
+  refresh: asyncHandler(async (req, res) => {
+    const rawToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    if (!rawToken) {
+      return res.status(401).json({ message: 'Refresh token not provided' });
+    }
+
+    const authService = getAuthService(req.models);
+    const decoded = authService.verifyRefreshToken(rawToken);
+    const user = await authService.repository.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    const token = authService.signToken(user);
+    const refreshToken = authService.signRefreshToken(user);
+    setTokenCookies(res, token, refreshToken);
+
+    res.status(200).json({ message: 'Token refreshed successfully' });
+  }),
+
+  getProfile: asyncHandler(async (req, res) => {
+    const user = await getAuthService(req.models).getProfile(req.user.id);
+    res.status(200).json({ user });
+  }),
+
+  requestPasswordReset: asyncHandler(async (req, res) => {
+    const result = await getAuthService(req.models).requestPasswordReset(req.body.email);
+    res.status(200).json(result);
+  }),
+
+  resetPassword: asyncHandler(async (req, res) => {
+    const result = await getAuthService(req.models).resetPassword(req.body);
+    res.status(200).json(result);
+  }),
+};

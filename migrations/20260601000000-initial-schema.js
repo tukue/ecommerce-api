@@ -1,9 +1,10 @@
+'use strict';
+
 module.exports = {
-  async up(queryInterface, Sequelize, options = {}) {
+  async up(queryInterface, Sequelize) {
     await queryInterface.createTable('users', {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         autoIncrement: true,
         primaryKey: true,
       },
@@ -29,6 +30,11 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: true,
       },
+      role: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue: 'user',
+      },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
@@ -39,12 +45,11 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
-    }, options);
+    });
 
     await queryInterface.createTable('products', {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         autoIncrement: true,
         primaryKey: true,
       },
@@ -74,12 +79,11 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
-    }, options);
+    });
 
     await queryInterface.createTable('orders', {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         autoIncrement: true,
         primaryKey: true,
       },
@@ -91,7 +95,7 @@ module.exports = {
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT',
+        onDelete: 'CASCADE',
       },
       productId: {
         type: Sequelize.INTEGER,
@@ -101,7 +105,7 @@ module.exports = {
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT',
+        onDelete: 'CASCADE',
       },
       quantity: {
         type: Sequelize.INTEGER,
@@ -110,29 +114,28 @@ module.exports = {
       total: {
         type: Sequelize.FLOAT,
         allowNull: false,
-        defaultValue: 0,
+        defaultValue: 0.0,
       },
       status: {
         type: Sequelize.STRING,
         allowNull: false,
         defaultValue: 'pending',
       },
-      createdAt: {
+      created_at: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
-      updatedAt: {
+      updated_at: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
-    }, options);
+    });
 
     await queryInterface.createTable('payments', {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         autoIncrement: true,
         primaryKey: true,
       },
@@ -144,7 +147,7 @@ module.exports = {
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT',
+        onDelete: 'CASCADE',
       },
       orderId: {
         type: Sequelize.INTEGER,
@@ -154,7 +157,7 @@ module.exports = {
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT',
+        onDelete: 'CASCADE',
       },
       stripePaymentId: {
         type: Sequelize.STRING,
@@ -182,19 +185,18 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
-    }, options);
+    });
 
-    await queryInterface.addIndex('orders', ['userId'], options);
-    await queryInterface.addIndex('orders', ['productId'], options);
-    await queryInterface.addIndex('payments', ['userId'], options);
-    await queryInterface.addIndex('payments', ['orderId'], options);
-    await queryInterface.addIndex('payments', ['stripePaymentId'], options);
+    await queryInterface.addIndex('orders', ['userId']);
+    await queryInterface.addIndex('orders', ['productId']);
+    await queryInterface.addIndex('payments', ['userId']);
+    await queryInterface.addIndex('payments', ['orderId']);
   },
 
-  async down(queryInterface, Sequelize, options = {}) {
-    await queryInterface.dropTable('payments', options);
-    await queryInterface.dropTable('orders', options);
-    await queryInterface.dropTable('products', options);
-    await queryInterface.dropTable('users', options);
+  async down(queryInterface) {
+    await queryInterface.dropTable('payments');
+    await queryInterface.dropTable('orders');
+    await queryInterface.dropTable('products');
+    await queryInterface.dropTable('users');
   },
 };

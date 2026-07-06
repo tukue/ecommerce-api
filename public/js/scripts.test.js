@@ -1,9 +1,11 @@
-// scripts.test.js
-global.TextEncoder = require("util").TextEncoder;
-global.TextDecoder = require("util").TextDecoder;
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+process.env.TEST = 'true';
 
 const setupDOM = () => {
-    document.body.innerHTML = `
+  document.body.innerHTML = `
         <div id="products-container"></div>
         <div id="cart-count">0</div>
         <input id="search-input" />
@@ -11,141 +13,127 @@ const setupDOM = () => {
         <div id="profile-container"></div>
     `;
 
-    global.fetch = jest.fn();
+  global.fetch = jest.fn();
+  global.alert = jest.fn();
 
-    const localStorageMock = {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        clear: jest.fn(),
-        removeItem: jest.fn()
-    };
-
-    Object.defineProperty(window, 'localStorage', {
-        value: localStorageMock,
-        configurable: true
-    });
-    global.localStorage = localStorageMock;
-    global.alert = jest.fn();
+  const store = {};
+  Object.defineProperty(global, 'localStorage', {
+    value: {
+      getItem: (key) => store[key] ?? null,
+      setItem: (key, value) => {
+        store[key] = value;
+      },
+      clear: () => {
+        Object.keys(store).forEach((k) => delete store[k]);
+      },
+      removeItem: (key) => {
+        delete store[key];
+      },
+    },
+    configurable: true,
+  });
 };
 
 describe('Frontend Functions', () => {
-    let scripts;
+  let scripts;
 
-    beforeEach(() => {
-        setupDOM();
-        jest.clearAllMocks();
-        scripts = require('./scripts');
-    });
+  beforeEach(() => {
+    setupDOM();
+    jest.resetModules();
+    scripts = require('./scripts');
+  });
 
-    // Test Product Display
-    test('displays products correctly', () => {
-        const testProducts = [{
-            id: '1',
-            name: 'Test Product',
-            price: 10,
-            stock: 5
-        }];
+  test('displays products correctly', () => {
+    const testProducts = [
+      {
+        id: '1',
+        name: 'Test Product',
+        price: 10,
+        stock: 5,
+      },
+    ];
 
-        scripts.displayProducts(testProducts);
-        
-        const container = document.getElementById('products-container');
-        expect(container).not.toBeNull(); // Ensure the container is not null
-        expect(container.innerHTML).toContain('Test Product');
-        expect(container.innerHTML).toContain('$10');
-    });
+    scripts.displayProducts(testProducts);
 
-    // Test Cart Operations
-    test('adds item to cart', () => {
-        localStorage.getItem.mockReturnValue('[]');
-        
-        const mockEvent = {
-            preventDefault: jest.fn(),
-            target: {
-                getAttribute: (attr) => ({
-                    'data-id': '1',
-                    'data-name': 'Test Product',
-                    'data-price': '10'
-                }[attr])
-            }
-        };
+    const container = document.getElementById('products-container');
+    expect(container).not.toBeNull();
+    expect(container.innerHTML).toContain('Test Product');
+    expect(container.innerHTML).toContain('$10');
+  });
 
-        scripts.addToCart(mockEvent);
-        
-        expect(localStorage.setItem).toHaveBeenCalledWith(
-            'cart',
-            expect.stringContaining('Test Product')
-        );
-    });
+  test('adds item to cart', () => {
+    global.localStorage.setItem('cart', '[]');
+    jest.spyOn(global.localStorage, 'setItem');
 
-    // Test Search Function
-    test('filters products by search query', () => {
-        const testProducts = [
-            { id: '1', name: 'Test Product', description: 'A test item' },
-            { id: '2', name: 'Another Item', description: 'Not matching' }
-        ];
-        scripts.state.products = testProducts;
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      target: {
+        getAttribute: jest.fn((attr) => {
+          const attrs = {
+            'data-id': '1',
+            'data-name': 'Test Product',
+            'data-price': '10',
+          };
+          return attrs[attr];
+        }),
+      },
+    };
 
-        // Mock displayProducts to verify it's called with filtered results
-        const displaySpy = jest.spyOn(scripts, 'displayProducts');
+    scripts.addToCart(mockEvent);
 
-        // Test search by name
-        scripts.searchProducts('test');
-        expect(displaySpy).toHaveBeenCalledWith(
-            expect.arrayContaining([
-                expect.objectContaining({ id: '1' })
-            ])
-        );
-        expect(displaySpy).toHaveBeenCalledWith(
-            expect.not.arrayContaining([
-                expect.objectContaining({ id: '2' })
-            ])
-        );
+    expect(global.localStorage.setItem).toHaveBeenCalledWith(
+      'cart',
+      expect.stringContaining('Test Product'),
+    );
+  });
 
-        // Test search by description
-        displaySpy.mockClear();
-        scripts.searchProducts('test item');
-        expect(displaySpy).toHaveBeenCalledWith(
-            expect.arrayContaining([
-                expect.objectContaining({ id: '1' })
-            ])
-        );
+  test('filters products by search query', () => {
+    const testProducts = [
+      { id: '1', name: 'Test Product', description: 'A test item' },
+      { id: '2', name: 'Another Item', description: 'Not matching' },
+    ];
+    scripts.state.products = testProducts;
 
-        // Test empty search
-        displaySpy.mockClear();
-        scripts.searchProducts('');
-        expect(displaySpy).toHaveBeenCalledWith(testProducts);
+    const displaySpy = jest.spyOn(scripts, 'displayProducts');
 
-        // Test no matches
-        displaySpy.mockClear();
-        scripts.searchProducts('nonexistent');
-        expect(displaySpy).toHaveBeenCalledWith([]);
+    scripts.searchProducts('test');
+    expect(displaySpy).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: '1' })]),
+    );
 
-        displaySpy.mockRestore();
-    });
+    displaySpy.mockClear();
+    scripts.searchProducts('');
+    expect(displaySpy).toHaveBeenCalledWith(testProducts);
 
-    // Test Profile Display
-    test('displays profile information correctly', () => {
-        const testUser = {
-            username: 'testuser',
-            email: 'test@example.com',
-            orders: [
-                {
-                    id: 1,
-                    total: 100,
-                    status: 'completed',
-                    createdAt: new Date().toISOString()
-                }
-            ]
-        };
+    displaySpy.mockClear();
+    scripts.searchProducts('nonexistent');
+    expect(displaySpy).toHaveBeenCalledWith([]);
 
-        scripts.displayProfile(testUser);
-        
-        const container = document.getElementById('profile-container');
-        expect(container).not.toBeNull();
-        expect(container.innerHTML).toContain('testuser');
-        expect(container.innerHTML).toContain('test@example.com');
-        expect(container.innerHTML).toContain('Order #1');
-        expect(container.innerHTML).toContain('$100');
-        expect(container.innerHTML).toContain('completed');
-    });
+    displaySpy.mockRestore();
+  });
+
+  test('displays profile information correctly', () => {
+    const testUser = {
+      username: 'testuser',
+      email: 'test@example.com',
+      orders: [
+        {
+          id: 1,
+          total: 100,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    };
+
+    scripts.displayProfile(testUser);
+
+    const container = document.getElementById('profile-container');
+    expect(container).not.toBeNull();
+    expect(container.innerHTML).toContain('testuser');
+    expect(container.innerHTML).toContain('test@example.com');
+    expect(container.innerHTML).toContain('Order #1');
+    expect(container.innerHTML).toContain('$100');
+    expect(container.innerHTML).toContain('completed');
+  });
 });

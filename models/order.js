@@ -9,44 +9,49 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
 
-  Order.init({
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    productId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    quantity: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        min: 1,
+  Order.init(
+    {
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      productId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+          min: 1,
+        },
+      },
+      total: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0.0,
+        validate: {
+          min: 0,
+        },
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'pending',
+        validate: {
+          isIn: [['pending', 'paid', 'shipped', 'completed', 'cancelled']],
+        },
       },
     },
-    total: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      defaultValue: 0.0,
-      validate: {
-        min: 0,
-      },
+    {
+      sequelize,
+      modelName: 'Order',
+      tableName: 'orders',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
     },
-    status: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      defaultValue: 'pending',
-      validate: {
-        isIn: [['pending', 'paid', 'shipped', 'completed', 'cancelled']],
-      },
-    },
-  }, {
-    sequelize,
-    modelName: 'Order',
-    tableName: 'orders',
-    timestamps: true,
-  });
+  );
 
   return Order;
 };
