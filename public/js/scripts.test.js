@@ -2,34 +2,30 @@
 global.TextEncoder = require("util").TextEncoder;
 global.TextDecoder = require("util").TextDecoder;
 
-const { JSDOM } = require('jsdom');
-const { displayProfile } = require('./scripts'); // Import displayProfile
-
-// Simplified DOM setup
 const setupDOM = () => {
-    const dom = new JSDOM(`
-        <!DOCTYPE html>
-        <body>
-            <div id="products-container"></div>
-            <div id="cart-count">0</div>
-            <input id="search-input" />
-            <div id="error-message"></div>
-            <div id="profile-container"></div>
-        </body>
-    `);
+    document.body.innerHTML = `
+        <div id="products-container"></div>
+        <div id="cart-count">0</div>
+        <input id="search-input" />
+        <div id="error-message"></div>
+        <div id="profile-container"></div>
+    `;
 
-    global.window = dom.window;
-    global.document = dom.window.document;
     global.fetch = jest.fn();
-    global.localStorage = {
+
+    const localStorageMock = {
         getItem: jest.fn(),
         setItem: jest.fn(),
         clear: jest.fn(),
         removeItem: jest.fn()
     };
-    global.alert = jest.fn(); // Mock the alert function
 
-    return dom;
+    Object.defineProperty(window, 'localStorage', {
+        value: localStorageMock,
+        configurable: true
+    });
+    global.localStorage = localStorageMock;
+    global.alert = jest.fn();
 };
 
 describe('Frontend Functions', () => {
@@ -142,7 +138,7 @@ describe('Frontend Functions', () => {
             ]
         };
 
-        displayProfile(testUser); // Use the imported displayProfile function
+        scripts.displayProfile(testUser);
         
         const container = document.getElementById('profile-container');
         expect(container).not.toBeNull();
