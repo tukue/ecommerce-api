@@ -28,7 +28,7 @@ const orderController = {
         userId,
         productId,
         quantity,
-        totalPrice,
+        total: totalPrice,
         status: 'pending'
       });
 

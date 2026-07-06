@@ -52,7 +52,10 @@ describe('Order Controller', () => {
       // Setup
       const mockOrder = { 
         id: 1, 
-        ...req.body, 
+        userId: 1,
+        productId: 1,
+        quantity: 2,
+        total: 200,
         status: 'pending' 
       };
       req.models.Order.create.mockResolvedValue(mockOrder);
@@ -68,7 +71,7 @@ describe('Order Controller', () => {
           userId: 1,
           productId: 1,
           quantity: 2,
-          totalPrice: 200,
+          total: 200,
           status: 'pending'
         })
       );

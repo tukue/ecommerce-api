@@ -11,7 +11,7 @@ This repository is intentionally designed as a **backend developer portfolio pro
 - robust error handling and validation
 - JWT auth and rate-limited login endpoint
 - production-grade telemetry (metrics + tracing + structured logging)
-- health checks and graceful shutdown behavior
+- health checks, explicit migrations, and graceful shutdown behavior
 - containerized runtime and CI-ready workflow
 
 ## Architecture summary
@@ -109,8 +109,16 @@ npm ci
 ```
 
 ### 3) Run locally
+Apply migrations first so the application starts against an explicit schema:
+
 ```bash
-node server.js
+npm run migrate
+```
+
+Then start the API:
+
+```bash
+npm start
 ```
 
 ### 4) Run with full observability stack
@@ -130,12 +138,12 @@ Implemented:
 - environment-based configuration with required variable checks
 - centralized error handling with consistent JSON envelopes
 - graceful shutdown (`SIGINT`, `SIGTERM`) for HTTP server, DB pool, and tracer
+- explicit migration runner (`npm run migrate`) instead of startup schema mutation
 - request rate limiting on auth login endpoint
 - CI pipeline (`.github/workflows/ci.yml`)
 - non-root runtime in Docker image
 
 Recommended before real production:
-- migrate `sequelize.sync({ alter: ... })` to migration-based deployment strategy
 - add secret manager integration (AWS Secrets Manager, Vault, etc.)
 - enforce TLS termination and reverse-proxy hardening
 - add SLO definitions and alert rules (latency, error rate, saturation)

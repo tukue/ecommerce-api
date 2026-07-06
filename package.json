@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "migrate": "node scripts/migrate.js",
     "test": "jest",
     "test:backend": "jest --config jest.backend.config.js",
     "test:frontend": "jest --config jest.frontend.config.js",
