@@ -23,9 +23,11 @@ async function ensureMetaTable(queryInterface) {
   });
 }
 
-async function getAppliedMigrations() {
-  const tableName = sequelize.getQueryInterface().quoteTable(metaTable);
-  const [rows] = await sequelize.query(`SELECT name FROM ${tableName} ORDER BY name`);
+async function getAppliedMigrations(queryInterface) {
+  const rows = await queryInterface.select(null, metaTable, {
+    attributes: ['name'],
+    order: [['name', 'ASC']],
+  });
   return new Set(rows.map((row) => row.name));
 }
 
@@ -42,7 +44,7 @@ async function run() {
     await ensureMetaTable(queryInterface);
   }
 
-  const applied = await getAppliedMigrations();
+  const applied = await getAppliedMigrations(queryInterface);
   const migrationFiles = fs.readdirSync(migrationsDir)
     .filter((file) => file.endsWith('.js'))
     .sort();
