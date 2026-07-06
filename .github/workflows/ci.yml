@@ -13,8 +13,8 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: ecommerce
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -38,7 +38,7 @@ jobs:
       - name: Validate database migrations
         env:
           NODE_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/ecommerce
+          DATABASE_URL: postgres://postgres@localhost:5432/ecommerce
           JWT_SECRET: test-secret
           JWT_EXPIRES_IN: 1h
         run: npm run migrate
@@ -46,7 +46,7 @@ jobs:
       - name: Run backend tests
         env:
           NODE_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/ecommerce
+          DATABASE_URL: postgres://postgres@localhost:5432/ecommerce
           JWT_SECRET: test-secret
           JWT_EXPIRES_IN: 1h
         run: npm run test:backend -- --runInBand
