@@ -348,6 +348,24 @@ describe('Auth Controller', () => {
 
       expect(res.statusCode).toBe(401);
     });
+
+    it('should reject refresh tokens sent in the request body', async () => {
+      const user = await User.create({
+        username: 'bodyrefreshuser',
+        email: 'bodyrefresh@example.com',
+        password: 'Password123!',
+      });
+      const refreshToken = jwt.sign(
+        { userId: user.id, type: 'refresh' },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN },
+      );
+
+      const res = await request(app).post('/api/auth/refresh').send({ refreshToken });
+
+      expect(res.statusCode).toBe(401);
+      expect(res.body.message).toBe('Refresh token not provided');
+    });
   });
 
   describe('Logout', () => {

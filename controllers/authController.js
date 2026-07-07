@@ -73,7 +73,7 @@ module.exports = {
   }),
 
   refresh: asyncHandler(async (req, res) => {
-    const rawToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    const rawToken = req.cookies?.refreshToken;
     if (!rawToken) {
       return res.status(401).json({ message: 'Refresh token not provided' });
     }
