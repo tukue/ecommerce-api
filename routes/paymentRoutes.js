@@ -12,11 +12,6 @@ router.post(
   paymentController.createPayment,
 );
 router.get('/', authMiddleware, paymentController.getAllPayments);
-router.get(
-  '/:id',
-  authMiddleware,
-  validate({ params: idParam }),
-  paymentController.getPaymentById,
-);
+router.get('/:id', authMiddleware, validate({ params: idParam }), paymentController.getPaymentById);
 
 module.exports = router;
