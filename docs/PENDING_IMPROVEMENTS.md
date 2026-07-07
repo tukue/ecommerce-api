@@ -7,7 +7,8 @@ Checklist of improvements needed to reach production readiness, ordered by impac
 ## Security (Score: 6/10)
 
 - [x] **Helmet security headers** — add `helmet` middleware for XSS/clickjacking/HSTS protection
-- [ ] **Input validation library** — replace manual validation with Zod/Joi schemas on every endpoint
+- [x] **Input validation library** — Zod schemas validate public request bodies, query strings,
+  and route parameters
 - [ ] **HTTP-only cookies** — move JWT from `localStorage` to `httpOnly`, `secure`, `sameSite` cookies
 - [x] **Rate limiting on all endpoints** — currently only login has it; add to register, password reset, and all mutating endpoints
 - [x] **Sanitize error messages** — ensure no internal details leak in production error responses

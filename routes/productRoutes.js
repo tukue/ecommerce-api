@@ -1,7 +1,12 @@
 const express = require('express');
 const productController = require('../controllers/productController');
 const validate = require('../middleware/validate');
-const { createProduct, updateProduct, searchProducts } = require('../utils/validators');
+const {
+  createProduct,
+  updateProduct,
+  searchProducts,
+  idParam,
+} = require('../utils/validators');
 const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleWare');
 
 const router = express.Router();
@@ -15,14 +20,21 @@ router.post(
 );
 router.get('/search', validate({ query: searchProducts }), productController.searchProductsByName);
 router.get('/', productController.getAllProducts);
-router.get('/:id', productController.getProductById);
+router.get('/:id', validate({ params: idParam }), productController.getProductById);
 router.put(
   '/:id',
   authMiddleware,
   adminMiddleware,
+  validate({ params: idParam }),
   validate({ body: updateProduct }),
   productController.updateProduct,
 );
-router.delete('/:id', authMiddleware, adminMiddleware, productController.deleteProduct);
+router.delete(
+  '/:id',
+  authMiddleware,
+  adminMiddleware,
+  validate({ params: idParam }),
+  productController.deleteProduct,
+);
 
 module.exports = router;

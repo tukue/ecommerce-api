@@ -108,6 +108,13 @@ describe('Product Controller', () => {
 
       expect(res.statusCode).toBe(404);
     });
+
+    it('should return 400 when product id is not a positive integer', async () => {
+      const res = await request(app).get('/api/products/not-a-number');
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
   });
 
   describe('POST /api/products (admin only)', () => {
@@ -194,6 +201,16 @@ describe('Product Controller', () => {
 
       expect(res.statusCode).toBe(401);
     });
+
+    it('should return 400 when product id is invalid', async () => {
+      const res = await request(app)
+        .put('/api/products/invalid')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Updated' });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
   });
 
   describe('DELETE /api/products/:id (admin only)', () => {
@@ -221,6 +238,15 @@ describe('Product Controller', () => {
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(res.statusCode).toBe(403);
+    });
+
+    it('should return 400 when delete product id is invalid', async () => {
+      const res = await request(app)
+        .delete('/api/products/invalid')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
     });
   });
 });
