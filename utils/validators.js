@@ -83,6 +83,10 @@ const createCheckoutSession = z.object({
     .min(1, 'cart must be a non-empty array'),
 });
 
+const idParam = z.object({
+  id: z.coerce.number().int().positive('must be a positive integer'),
+});
+
 module.exports = {
   register,
   login,
@@ -95,4 +99,5 @@ module.exports = {
   updateOrder,
   createPayment,
   createCheckoutSession,
+  idParam,
 };

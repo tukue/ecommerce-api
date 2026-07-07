@@ -267,6 +267,15 @@ describe('Order Routes', () => {
 
       expect(res.statusCode).toBe(404);
     });
+
+    it('returns 400 for invalid order id', async () => {
+      const res = await request(app)
+        .get('/api/orders/not-a-number')
+        .set('Authorization', `Bearer ${userToken1}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
   });
 
   describe('PUT /api/orders/:id (update)', () => {
@@ -321,6 +330,16 @@ describe('Order Routes', () => {
 
       expect(res.statusCode).toBe(403);
     });
+
+    it('returns 400 when updating an invalid order id', async () => {
+      const res = await request(app)
+        .put('/api/orders/not-a-number')
+        .set('Authorization', `Bearer ${userToken1}`)
+        .send({ quantity: 10 });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
   });
 
   describe('DELETE /api/orders/:id (delete)', () => {
@@ -358,6 +377,15 @@ describe('Order Routes', () => {
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.statusCode).toBe(200);
+    });
+
+    it('returns 400 when deleting an invalid order id', async () => {
+      const res = await request(app)
+        .delete('/api/orders/not-a-number')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
     });
   });
 });
