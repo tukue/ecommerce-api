@@ -92,7 +92,6 @@ function decreaseQuantity(event) {
 
 document.getElementById('checkout-button').addEventListener('click', async () => {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const userId = localStorage.getItem('userId'); // Assume user ID is stored in localStorage
 
   try {
     const response = await fetch('/api/checkout/create-checkout-session', {
@@ -115,14 +114,7 @@ document.getElementById('checkout-button').addEventListener('click', async () =>
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        userId,
-        orderId: id, // Assume the order ID is returned from the checkout session
-        stripePaymentId: id,
-        amount,
-        currency,
-        status: 'pending',
-      }),
+      body: JSON.stringify(buildPaymentPayload({ id, amount, currency })),
     });
 
     const stripe = Stripe(window.STRIPE_PUBLIC_KEY);
@@ -138,7 +130,23 @@ function clearCart() {
   displayCartItems();
 }
 
+function buildPaymentPayload({ id, amount, currency }) {
+  return {
+    orderId: id,
+    stripePaymentId: id,
+    amount,
+    currency,
+    status: 'pending',
+  };
+}
+
 // Check if the user is on the success page and clear the cart
 if (window.location.pathname === '/success') {
   clearCart();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    buildPaymentPayload,
+  };
 }
