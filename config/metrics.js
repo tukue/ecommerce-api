@@ -1,28 +1,29 @@
 const promClient = require('prom-client');
+const { Histogram } = require('prom-client');
 
 // Create a Registry
 const register = new promClient.Registry();
-
-// Enable the collection of default metrics
 promClient.collectDefaultMetrics({ register });
 
-// Custom metrics
-const httpRequestDuration = new promClient.Histogram({
+// Existing metrics
+const httpRequestDuration = new Histogram({
     name: 'http_request_duration_seconds',
     help: 'Duration of HTTP requests in seconds',
     labelNames: ['method', 'route', 'status_code'],
-    buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10]
+    buckets: [0.1, 0.3, 0.5, 1, 3, 5] // Define buckets for request duration
 });
 
-const orderTotal = new promClient.Counter({
-    name: 'order_total',
-    help: 'Total number of orders'
+// New metrics
+const httpRequestTotal = new promClient.Counter({
+    name: 'http_requests_total',
+    help: 'Total number of HTTP requests',
+    labelNames: ['method', 'route', 'status_code']
 });
 
-const productViews = new promClient.Counter({
-    name: 'product_views_total',
-    help: 'Total number of product views',
-    labelNames: ['product_id']
+const cartOperationsTotal = new promClient.Counter({
+    name: 'cart_operations_total',
+    help: 'Total number of cart operations',
+    labelNames: ['operation']
 });
 
 const activeUsers = new promClient.Gauge({
@@ -31,14 +32,15 @@ const activeUsers = new promClient.Gauge({
 });
 
 register.registerMetric(httpRequestDuration);
-register.registerMetric(orderTotal);
-register.registerMetric(productViews);
-register.registerMetric(activeUsers);
+register.registerMetric(httpRequestTotal);
+register.registerMetric(cartOperationsTotal);
+register.registerMetric(checkoutTotal);
 
 module.exports = {
     register,
     httpRequestDuration,
-    orderTotal,
-    productViews,
-    activeUsers
+    httpRequestTotal,
+    cartOperationsTotal,
+    checkoutTotal
 };
+

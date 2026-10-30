@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const { productViews } = require('../config/metrics');
 
 /**
  * @swagger
